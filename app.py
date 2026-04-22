@@ -601,9 +601,8 @@ elif section == "📊 A2 — Dummy Regression":
 
     with st.expander("📋 Full OLS Summary"):
         st.text(str(fit_a2.summary()))
-        
 # ══════════════════════════════════════════════
-#  📊  A3 — LASSO DEPENDENCY
+#  📊  A4 — LASSO DEPENDENCY
 # ══════════════════════════════════════════════
 elif section == "📊 A4 — Lasso Dependency":
     st.markdown(f"""
@@ -669,7 +668,7 @@ elif section == "📊 A4 — Lasso Dependency":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A4 — LOGISTIC EFFORT
+#  📊  A5 — LOGISTIC EFFORT
 # ══════════════════════════════════════════════
 elif section == "📊 A5 — Logistic Effort":
     st.markdown(f"""
@@ -745,7 +744,7 @@ elif section == "📊 A5 — Logistic Effort":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A5 — TWO-SAMPLE T-TEST
+#  📊  A6 — TWO-SAMPLE T-TEST
 # ══════════════════════════════════════════════
 elif section == "📊 A6 — Two-sample t-test":
     st.markdown(f"""
@@ -821,7 +820,7 @@ elif section == "📊 A6 — Two-sample t-test":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A6 — TWO-WAY ANOVA
+#  📊  A7 — TWO-WAY ANOVA
 # ══════════════════════════════════════════════
 elif section == "📊 A7 — Two-Way ANOVA":
     st.markdown(f"""
