@@ -6,6 +6,8 @@ from scipy.stats import binom
 from sklearn.linear_model import Lasso, LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.model_selection import cross_val_score, KFold
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.formula.api as smf
 import statsmodels.api as sm
 import statsmodels.stats.multicomp as mc
@@ -172,8 +174,6 @@ CB = '#6b9fff'
 
 # ─────────────────────────────────────────────
 #  CSV PATH RESOLUTION
-#  Priority: 1) survey_data.csv next to app.py
-#            2) Windows Downloads path
 # ─────────────────────────────────────────────
 _WIN_PATH   = (r"C:\Users\Aarav\OneDrive\Desktop\SSDI_Project"
                r"\AI Dependency & Human Creativity — Research Survey(Sheet1) (2).csv")
@@ -186,7 +186,7 @@ def _find_csv() -> str | None:
     return None
 
 # ─────────────────────────────────────────────
-#  DATA LOADING  (uses real column names from CSV)
+#  DATA LOADING
 # ─────────────────────────────────────────────
 @st.cache_data
 def load_and_clean(path: str) -> pd.DataFrame:
@@ -194,7 +194,7 @@ def load_and_clean(path: str) -> pd.DataFrame:
 
     hours_map = {
         'Less than 30 min': 0.25,
-        '30 min \u2013 1 hr': 0.75,   # en-dash variant in CSV
+        '30 min \u2013 1 hr': 0.75,
         '30 min - 1 hr':    0.75,
         '1 \u2013 2 hrs':   1.5,
         '1 - 2 hrs':        1.5,
@@ -229,9 +229,7 @@ def load_and_clean(path: str) -> pd.DataFrame:
     df = df.dropna(subset=['cb','cn','conf','feel_less','harder',
                            'accept','hours','writing','problem','creative'])
 
-    # Derived columns
     df['change']     = df['cn'] - df['cb']
-    # Normalise accept (1-10) to 1-5 so all three dep components share same scale
     df['dep']        = (df['feel_less'] + df['harder'] + df['accept'] / 2.0) / 3.0
     df['effort_sig'] = df['effort_raw'].str.contains('significantly', case=False, na=False).astype(int)
     df['role_b']     = (df['role'] == 'Student').astype(int)
@@ -268,11 +266,6 @@ def show_plot(fig):
     st.pyplot(fig, use_container_width=True)
     plt.close(fig)
 
-def safe_ttest(a, b):
-    if len(a) < 2 or len(b) < 2:
-        return float('nan'), float('nan')
-    return stats.ttest_ind(a, b, equal_var=True)
-
 # ─────────────────────────────────────────────
 #  LOAD DATA AT STARTUP
 # ─────────────────────────────────────────────
@@ -293,7 +286,7 @@ if n < 5:
     st.stop()
 
 # ─────────────────────────────────────────────
-#  SIDEBAR  (no upload widget)
+#  SIDEBAR  (A5 removed)
 # ─────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### 🧭 Navigate")
@@ -303,7 +296,6 @@ with st.sidebar:
         "📊 A2 — Dummy Regression",
         "📊 A3 — Lasso Dependency",
         "📊 A4 — Logistic Effort",
-        "📊 A5 — Two-sample t-test",
         "🔮 P1 — Predict Creativity",
         "🔮 P2 — Predict Dependency",
         "📋 Summary",
@@ -375,7 +367,7 @@ if section == "🏠 Overview":
     st.markdown("""
     <div class="section-card">
       <div class="section-title">📦 Variable Dictionary</div>
-      <div class="section-subtitle">All variables derived from the survey across 7 analyses and 2 predictions</div>
+      <div class="section-subtitle">All variables derived from the survey across 4 analyses and 2 predictions</div>
       <hr class="hdivider">
     """, unsafe_allow_html=True)
 
@@ -414,12 +406,6 @@ if section == "🏠 Overview":
             "1 if 'significantly' in response, else 0",
             "1 if Student, 0 otherwise"
         ],
-        "Used In":       [
-            "A1,A2,A4,A5,P1","A4,A5","A4,A5,P1","A4,A5,P1","A1,P1",
-            "A2,A3,A5,A6,A7,P1","A2,A6,P1","A4","A4","A4",
-            "A6,A7","—","A2,A5,A6,P1","A5","A7",
-            "A1,A3","A4,P2","A5","A2"
-        ]
     }
     vdf = pd.DataFrame(var_data)
 
@@ -442,25 +428,24 @@ if section == "🏠 Overview":
       <hr class="hdivider">
     """, unsafe_allow_html=True)
     map_data = {
-        "Code":     ["A1","A2","A3","A4","A5","A6","A7","P1","P2"],
+        "Code":     ["A1","A2","A3","A4","P1","P2"],
         "Question": [
             "Does high baseline creativity predict decline?",
             "Does training/role/hours predict current creativity?",
-            "Has creativity meaningfully changed post-AI?",
             "What drives AI dependency scores?",
-            "What predicts effort reduction?",
-            "Does training boost confidence differently by role?",
-            "Does usage type × role predict creativity?",
-            "Predict current creativity from a profile",
+            "What predicts effort reduction? (with K-Fold CV)",
+            "Predict current creativity from a profile (with VIF)",
             "Are students more likely to be highly AI-dependent?",
         ],
         "Method":   [
-            "One-Way ANOVA + OLS","Multiple OLS (dummies)",
-            "Shapiro + Levene + Paired t + 2-prop Z",
-            "Lasso Regression","Logistic Regression","Two-sample t-test",
-            "Two-Way ANOVA + Tukey","Multiple OLS + 95% CI","Binomial MLE + 2-prop Z"
+            "One-Way ANOVA + OLS",
+            "Multiple OLS (dummies)",
+            "Lasso Regression",
+            "Logistic Regression + K-Fold CV",
+            "Multiple OLS + VIF + 95% CI",
+            "Binomial MLE + 2-prop Z-test"
         ],
-        "Lab Ref":  ["8+10","10","9+7","10","11","6","8","10","2+7"],
+        "Lab Ref":  ["8+10","10","10","11","10","2+7"],
     }
     st.dataframe(pd.DataFrame(map_data), use_container_width=True, hide_index=True)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -600,6 +585,7 @@ elif section == "📊 A2 — Dummy Regression":
 
     with st.expander("📋 Full OLS Summary"):
         st.text(str(fit_a2.summary()))
+
 # ══════════════════════════════════════════════
 #  📊  A3 — LASSO DEPENDENCY
 # ══════════════════════════════════════════════
@@ -652,7 +638,7 @@ elif section == "📊 A3 — Lasso Dependency":
     ax.barh(feats4, lasso.coef_, color=bcolors, height=0.55)
     ax.axvline(0, color='#888', lw=0.8)
     ax.set(xlabel='Lasso Coefficient (standardised)',
-           title=f'A4 — Lasso Variable Selection (α = {alpha_val})')
+           title=f'A3 — Lasso Variable Selection (α = {alpha_val})')
     for bar_p, val in zip(ax.patches, lasso.coef_):
         if abs(val) > 1e-4:
             offset = 0.005 if val >= 0 else -0.005
@@ -667,16 +653,17 @@ elif section == "📊 A3 — Lasso Dependency":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A4 — LOGISTIC EFFORT
+#  📊  A4 — LOGISTIC EFFORT  (+ K-Fold CV)
 # ══════════════════════════════════════════════
 elif section == "📊 A4 — Logistic Effort":
     st.markdown(f"""
     <div class="section-card">
       <div class="section-title">A4 — What predicts whether AI significantly reduced effort?</div>
-      {badge("Lab 11 — Logistic Regression")}
+      {badge("Lab 11 — Logistic Regression")} {badge("Lab 11 — K-Fold Cross-Validation")}
       <div class="need-box">
         <b>Research Need:</b> Binary classification — predict whether a user reports that AI
         "significantly" reduced their creative effort, using usage and profile variables.
+        K-Fold CV validates that the model generalises beyond the training sample.
       </div>
       <div class="var-grid">
         {pill('hours','cont')} {pill('writing','cont')} {pill('problem','cont')}
@@ -704,27 +691,33 @@ elif section == "📊 A4 — Logistic Effort":
     cm     = confusion_matrix(y5, y_pred, labels=[0, 1])
     acc    = accuracy_score(y5, y_pred)
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Accuracy",              f"{acc * 100:.1f}%")
-    c2.metric("effort_sig = 1 (sig.)", int(y5.sum()))
-    c3.metric("effort_sig = 0",        int(len(y5) - y5.sum()))
+    # ── K-Fold Cross-Validation (Lab 11) ──────────────────────────
+    k_folds    = st.slider("Number of K-Fold splits", 3, 10, 5, key='a4_kfold')
+    kfold      = KFold(n_splits=k_folds, shuffle=True, random_state=42)
+    cv_scores  = cross_val_score(
+        LogisticRegression(max_iter=1000, random_state=42),
+        X5, y5, cv=kfold, scoring='accuracy'
+    )
 
-    or_df = pd.DataFrame({
-        'Variable':   feats5,
-        'Log-Odds':   lr5.coef_[0].round(4),
-        'Odds Ratio': ors5.round(3),
-        'Effect':     ['↑ more likely' if o > 1 else '↓ less likely' for o in ors5]
-    })
-    st.dataframe(or_df, use_container_width=True, hide_index=True)
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Training Accuracy",    f"{acc * 100:.1f}%")
+    c2.metric(f"{k_folds}-Fold CV Mean", f"{cv_scores.mean() * 100:.1f}%")
+    c3.metric("CV Std Dev",           f"± {cv_scores.std() * 100:.1f}%")
+    c4.metric("effort_sig = 1",       int(y5.sum()))
 
+    # CV fold scores bar chart + confusion matrix
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-    bcolors = [C1 if o > 1 else C3 for o in ors5]
-    axes[0].barh(feats5, ors5, color=bcolors, height=0.5)
-    axes[0].axvline(1, color=CB, lw=1, linestyle='--', label='OR=1 (no effect)')
-    axes[0].set(xlabel='Odds Ratio', title='A5 — Logistic Regression Odds Ratios')
-    axes[0].legend(fontsize=8)
-    for i, val in enumerate(ors5):
-        axes[0].text(val + 0.03, i, f'{val:.2f}', va='center', fontsize=9)
+
+    fold_labels = [f'Fold {i+1}' for i in range(k_folds)]
+    bar_colors  = [C1 if s >= cv_scores.mean() else C3 for s in cv_scores]
+    axes[0].bar(fold_labels, cv_scores * 100, color=bar_colors, width=0.55)
+    axes[0].axhline(cv_scores.mean() * 100, color=CB, lw=1.5, linestyle='--',
+                    label=f'Mean = {cv_scores.mean()*100:.1f}%')
+    axes[0].set(ylabel='Accuracy (%)', title=f'A4 — {k_folds}-Fold Cross-Validation Scores',
+                ylim=(max(0, cv_scores.min() * 100 - 10), min(100, cv_scores.max() * 100 + 10)))
+    for i, s in enumerate(cv_scores):
+        axes[0].text(i, s * 100 + 0.5, f'{s*100:.1f}%', ha='center', fontsize=9)
+    axes[0].legend(fontsize=9)
 
     cm_full = np.zeros((2, 2), dtype=int)
     for i in range(min(cm.shape[0], 2)):
@@ -738,97 +731,51 @@ elif section == "📊 A4 — Logistic Effort":
         for j in range(2):
             axes[1].text(j, i, str(cm_full[i, j]), ha='center', va='center',
                          fontsize=18, fontweight='bold', color='white')
-    axes[1].set_title(f'A5 — Confusion Matrix (acc = {acc * 100:.0f}%)')
+    axes[1].set_title(f'A4 — Confusion Matrix (train acc = {acc * 100:.0f}%)')
     plt.tight_layout()
     show_plot(fig)
 
-# ══════════════════════════════════════════════
-#  📊  A5 — TWO-SAMPLE T-TEST
-# ══════════════════════════════════════════════
-elif section == "📊 A5 — Two-sample t-test":
-    st.markdown(f"""
-    <div class="section-card">
-      <div class="section-title">A5 — Does AI training boost confidence differently by role?</div>
-      {badge("Lab 6 — Two-sample Independent t-test (Pooled)")}
-      <div class="need-box">
-        <b>Research Need:</b> Test whether the confidence in problem-solving without AI differs
-        between trained vs untrained respondents, split by role.
-      </div>
-      <div class="var-grid">
-        {pill('conf','cont')} <span class="pill-label"> Outcome (ProbSolve_WithoutAI)</span>
-        &nbsp; {pill('role','cat')} {pill('trained','cat')} <span class="pill-label"> Grouping vars</span>
-      </div>
-      {formula_box("H₀: μ(trained) = μ(untrained)   within each role   [equal_var = True]")}
-    </div>
-    """, unsafe_allow_html=True)
-
-    stud_tr = df[(df['role'] == 'Student')              & (df['trained'] == 1)]['conf']
-    stud_un = df[(df['role'] == 'Student')              & (df['trained'] == 0)]['conf']
-    prof_tr = df[(df['role'] == 'Working professional') & (df['trained'] == 1)]['conf']
-    prof_un = df[(df['role'] == 'Working professional') & (df['trained'] == 0)]['conf']
-
-    t_s, p_s = safe_ttest(stud_tr, stud_un)
-    t_p, p_p = safe_ttest(prof_tr, prof_un)
-
-    def _fmt(v):  return f"{v:.4f}" if not np.isnan(v) else "N/A"
-    def _mean(s): return f"{s.mean():.3f}" if len(s) > 0 else "N/A"
-    def _diff(a, b): return f"{a.mean()-b.mean():.3f}" if len(a) > 0 and len(b) > 0 else "N/A"
-    def _dec(p):
-        if np.isnan(p): return "N/A"
-        return "Reject H₀" if p < 0.05 else "Accept H₀"
-
-    res_df = pd.DataFrame({
-        'Group':           ['Students', 'Professionals'],
-        'Trained Mean':    [_mean(stud_tr), _mean(prof_tr)],
-        'Untrained Mean':  [_mean(stud_un), _mean(prof_un)],
-        'Training Effect': [_diff(stud_tr, stud_un), _diff(prof_tr, prof_un)],
-        't-stat':          [_fmt(t_s), _fmt(t_p)],
-        'p-value':         [_fmt(p_s), _fmt(p_p)],
-        'Decision':        [_dec(p_s), _dec(p_p)],
+    # Odds ratio table
+    st.markdown("#### Odds Ratios")
+    or_df = pd.DataFrame({
+        'Variable':   feats5,
+        'Log-Odds':   lr5.coef_[0].round(4),
+        'Odds Ratio': ors5.round(3),
+        'Effect':     ['↑ more likely' if o > 1 else '↓ less likely' for o in ors5]
     })
-    st.dataframe(res_df, use_container_width=True, hide_index=True)
+    st.dataframe(or_df, use_container_width=True, hide_index=True)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-    group_specs = [
-        (stud_tr, 'Students\nTrained',   C2,      0),
-        (stud_un, 'Students\nUntrained', '#2a233a',1),
-        (prof_tr, 'Profs\nTrained',      C1,      2),
-        (prof_un, 'Profs\nUntrained',    '#0e2a1a',3),
-    ]
-    for grp, lbl, bc, idx in group_specs:
-        if len(grp) > 0:
-            m = grp.mean()
-            axes[0].bar(lbl, m, color=bc, width=0.55)
-            axes[0].text(idx, m + 0.15, f'{m:.2f}\n(n={len(grp)})', ha='center', fontsize=9)
-    axes[0].set_ylim(0, 12)
-    axes[0].set(ylabel='Mean Confidence (conf)', title='A6 — Confidence by Role & Training')
-
-    gaps, glabels = [], []
-    for role, tr, un in [('Students', stud_tr, stud_un), ('Professionals', prof_tr, prof_un)]:
-        if len(tr) > 0 and len(un) > 0:
-            gaps.append(tr.mean() - un.mean())
-            glabels.append(role)
-    if gaps:
-        axes[1].bar(glabels, gaps, color=[C1] * len(gaps), width=0.4)
-        axes[1].axhline(0, color='#888', lw=0.8)
-        for i, g in enumerate(gaps):
-            axes[1].text(i, g + (0.05 if g >= 0 else -0.2),
-                         f'{g:+.2f}', ha='center', fontsize=12, fontweight='bold', color=C1)
-    axes[1].set(ylabel='Confidence Gain from Training', title='A6 — Training Effect by Role')
+    fig2, ax2 = plt.subplots(figsize=(10, 3.5))
+    bcolors2 = [C1 if o > 1 else C3 for o in ors5]
+    ax2.barh(feats5, ors5, color=bcolors2, height=0.5)
+    ax2.axvline(1, color=CB, lw=1, linestyle='--', label='OR=1 (no effect)')
+    ax2.set(xlabel='Odds Ratio', title='A4 — Logistic Regression Odds Ratios')
+    ax2.legend(fontsize=8)
+    for i, val in enumerate(ors5):
+        ax2.text(val + 0.03, i, f'{val:.2f}', va='center', fontsize=9)
     plt.tight_layout()
-    show_plot(fig)
+    show_plot(fig2)
+
+    st.markdown(result_box(
+        f"✅ CV ACCURACY: {cv_scores.mean()*100:.1f}% (±{cv_scores.std()*100:.1f}%)",
+        f"Training accuracy = {acc*100:.1f}%. "
+        f"{k_folds}-Fold CV mean = {cv_scores.mean()*100:.1f}%, "
+        f"confirming {'good' if abs(acc - cv_scores.mean()) < 0.05 else 'some'} generalisation."
+    ), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
-#  🔮  P1 — PREDICT CREATIVITY
+#  🔮  P1 — PREDICT CREATIVITY  (+ VIF)
 # ══════════════════════════════════════════════
 elif section == "🔮 P1 — Predict Creativity":
     st.markdown(f"""
     <div class="section-card">
       <div class="section-title">P1 — Predict Current Creativity from a Person's Profile</div>
-      {badge("Lab 10 — Multiple OLS + 95% CI")} {badge("INTERACTIVE PREDICTION", "pred")}
+      {badge("Lab 10 — Multiple OLS + 95% CI")} {badge("Lab 10 — VIF Multicollinearity")}
+      {badge("INTERACTIVE PREDICTION", "pred")}
       <div class="need-box">
         <b>Research Need:</b> Given a person's baseline creativity, usage habits and training status,
         predict their current creativity score with a 95% confidence interval.
+        VIF checks confirm predictors are not collinear.
       </div>
       <div class="var-grid">
         {pill('cb','cont')} {pill('hours','cont')} {pill('creative','cont')}
@@ -840,13 +787,44 @@ elif section == "🔮 P1 — Predict Creativity":
     </div>
     """, unsafe_allow_html=True)
 
-    fit_p1 = smf.ols('cn ~ cb + hours + creative + problem + conf + trained', data=df).fit()
+    p1_feats = ['cb','hours','creative','problem','conf','trained']
+    fit_p1   = smf.ols('cn ~ cb + hours + creative + problem + conf + trained', data=df).fit()
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("R²",        f"{fit_p1.rsquared:.3f}")
     c2.metric("F-stat",    f"{fit_p1.fvalue:.2f}")
     c3.metric("p (model)", f"{fit_p1.f_pvalue:.5f}")
     c4.metric("RMSE",      f"{np.sqrt(fit_p1.mse_resid):.3f}")
+
+    # ── VIF Table (Lab 10) ─────────────────────────────────────────
+    st.markdown("#### Multicollinearity Check — Variance Inflation Factors")
+    X_vif = df[p1_feats].copy().astype(float)
+    X_vif = sm.add_constant(X_vif)
+    vif_vals = [variance_inflation_factor(X_vif.values, i) for i in range(X_vif.shape[1])]
+    vif_df = pd.DataFrame({
+        'Variable': X_vif.columns.tolist(),
+        'VIF':      [round(v, 3) for v in vif_vals],
+        'Status':   ['(intercept)' if col == 'const'
+                     else '✅ OK' if v < 5
+                     else '⚠️ Moderate' if v < 10
+                     else '❌ High multicollinearity'
+                     for col, v in zip(X_vif.columns, vif_vals)]
+    })
+    st.dataframe(vif_df, use_container_width=True, hide_index=True)
+
+    fig_vif, ax_vif = plt.subplots(figsize=(10, 3))
+    vif_plot = vif_df[vif_df['Variable'] != 'const']
+    vif_colors = [C1 if v < 5 else C3 if v >= 10 else '#E8A020' for v in vif_plot['VIF']]
+    ax_vif.barh(vif_plot['Variable'], vif_plot['VIF'], color=vif_colors, height=0.5)
+    ax_vif.axvline(5,  color='#E8A020', lw=1, linestyle='--', label='VIF = 5 (moderate)')
+    ax_vif.axvline(10, color=C3,        lw=1, linestyle='--', label='VIF = 10 (high)')
+    ax_vif.set(xlabel='VIF', title='P1 — Variance Inflation Factors')
+    ax_vif.legend(fontsize=8)
+    for bar_p, val in zip(ax_vif.patches, vif_plot['VIF']):
+        ax_vif.text(val + 0.05, bar_p.get_y() + bar_p.get_height() / 2,
+                    f'{val:.2f}', va='center', fontsize=9)
+    plt.tight_layout()
+    show_plot(fig_vif)
 
     st.markdown("---")
     st.markdown("### 🎯 Interactive Predictor")
@@ -1043,11 +1021,11 @@ elif section == "📋 Summary":
     st.markdown(f"""
     <div class="section-card">
       <div class="section-title">📋 All Results — Final Summary</div>
-      <div class="section-subtitle">N = {n} respondents · Methods: Lab 2, 6, 7, 8, 9, 10, 11</div>
+      <div class="section-subtitle">N = {n} respondents · Methods: Lab 2, 7, 8, 10, 11</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Re-run all models
+    # Re-run all models for summary
     fit_a1_s  = smf.ols('change ~ cb', data=df).fit()
     fit_a2_s  = smf.ols('cn ~ hours + role_b + trained', data=df).fit()
 
@@ -1070,12 +1048,23 @@ elif section == "📋 Summary":
     X5_s     = StandardScaler().fit_transform(df[feats5_s])
     y5_s     = df['effort_sig'].values
     acc_s    = 0.0
+    cv_mean_s = 0.0
     if len(np.unique(y5_s)) >= 2:
         lr5_s = LogisticRegression(max_iter=1000, random_state=42)
         lr5_s.fit(X5_s, y5_s)
         acc_s = lr5_s.score(X5_s, y5_s)
+        cv_scores_s = cross_val_score(
+            LogisticRegression(max_iter=1000, random_state=42),
+            X5_s, y5_s, cv=KFold(5, shuffle=True, random_state=42), scoring='accuracy'
+        )
+        cv_mean_s = cv_scores_s.mean()
 
-    fit_p1_s  = smf.ols('cn ~ cb + hours + creative + problem + conf + trained', data=df).fit()
+    fit_p1_s = smf.ols('cn ~ cb + hours + creative + problem + conf + trained', data=df).fit()
+
+    # VIF for summary
+    X_vif_s = sm.add_constant(df[['cb','hours','creative','problem','conf','trained']].astype(float))
+    vif_max  = max(variance_inflation_factor(X_vif_s.values, i)
+                   for i in range(1, X_vif_s.shape[1]))
 
     stu_d_s   = df[df['role'] == 'Student']['dep']
     pro_d_s   = df[df['role'] == 'Working professional']['dep']
@@ -1091,7 +1080,6 @@ elif section == "📋 Summary":
         except Exception:
             pass
 
-    # A2: safely retrieve 'trained' parameter
     trained_coef_s = fit_a2_s.params.get('trained', float('nan'))
     trained_pval_s = fit_a2_s.pvalues.get('trained', float('nan'))
 
@@ -1102,25 +1090,15 @@ elif section == "📋 Summary":
         ("A2","Multiple OLS (dummies)","Lab 10",
          f"R² = {fit_a2_s.rsquared:.3f}, trained coef = {trained_coef_s:.3f}",
          "✅ Significant" if (not np.isnan(trained_pval_s) and trained_pval_s < 0.05) else "❌ Not sig"),
-        ("A3","Paired t + Shapiro + 2-prop Z","Lab 9+7",
-         f"{pos_s} improved, {neg_s} declined · z = {z_a3_s:.3f}, p = {p_a3_s:.4f}",
-         "✅ Significant" if p_a3_s < 0.05 else "❌ Not sig"),
-        ("A4","Lasso Regression","Lab 10",
+        ("A3","Lasso Regression","Lab 10",
          f"Kept {len(kept_s)} vars: {kept_s} · R² = {lasso_s.score(X4_s, y4_s):.3f}",
          "Variable selection"),
-        ("A5","Logistic Regression","Lab 11",
-         f"Accuracy = {acc_s*100:.0f}%",
-         "Classification"),
-        ("A6","Two-sample t-test","Lab 6",
-         "Students vs Professionals — training effect on conf",
-         "Exploratory"),
-        ("A7","Two-Way ANOVA + Tukey","Lab 8",
-         f"usage_type × role interaction on cn · "
-         f"N = {len(df[df['role'].isin(['Student','Working professional'])])}",
-         "ANOVA"),
-        ("P1","OLS Prediction + 95% CI","Lab 10",
-         f"R² = {fit_p1_s.rsquared:.3f}, RMSE = {np.sqrt(fit_p1_s.mse_resid):.3f}",
-         "Predictive"),
+        ("A4","Logistic Regression + 5-Fold CV","Lab 11",
+         f"Train acc = {acc_s*100:.0f}% · CV mean = {cv_mean_s*100:.1f}%",
+         "Classification + CV"),
+        ("P1","OLS + VIF + 95% CI","Lab 10",
+         f"R² = {fit_p1_s.rsquared:.3f}, RMSE = {np.sqrt(fit_p1_s.mse_resid):.3f}, max VIF = {vif_max:.2f}",
+         "✅ No multicollinearity" if vif_max < 10 else "⚠️ Check VIF"),
         ("P2","Binomial MLE + 2-prop Z","Lab 2+7",
          f"Students {mle_ss:.1%} vs Profs {mle_ps:.1%} · z = {z_p2_s:.3f}, p = {pval_p2_s:.4f}",
          "✅ Significant" if pval_p2_s < 0.05 else "❌ Not sig"),
@@ -1135,7 +1113,7 @@ elif section == "📋 Summary":
         <div class='metric-val'>{n}</div><div class='metric-lbl'>Respondents</div>
       </div>
       <div class='metric-card'>
-        <div class='metric-val'>9</div><div class='metric-lbl'>Analyses</div>
+        <div class='metric-val'>6</div><div class='metric-lbl'>Analyses</div>
       </div>
       <div class='metric-card'>
         <div class='metric-val'>Lab 2–11</div><div class='metric-lbl'>Methods</div>
@@ -1151,6 +1129,12 @@ elif section == "📋 Summary":
       </div>
       <div class='metric-card'>
         <div class='metric-val'>{df["change"].mean():+.2f}</div><div class='metric-lbl'>Avg Change</div>
+      </div>
+      <div class='metric-card'>
+        <div class='metric-val'>{cv_mean_s*100:.0f}%</div><div class='metric-lbl'>CV Accuracy</div>
+      </div>
+      <div class='metric-card'>
+        <div class='metric-val'>{vif_max:.1f}</div><div class='metric-lbl'>Max VIF</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
