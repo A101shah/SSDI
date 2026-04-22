@@ -177,7 +177,7 @@ CB = '#6b9fff'
 # ─────────────────────────────────────────────
 _WIN_PATH   = (r"C:\Users\Aarav\Downloads"
                r"\AI Dependency & Human Creativity — Research Survey(Sheet1) (2).csv")
-_LOCAL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "survey_data.csv")
+_LOCAL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AI Dependency & Human Creativity — Research Survey(Sheet1) (2).csv")
 
 def _find_csv() -> str | None:
     for p in [_LOCAL_PATH, _WIN_PATH]:
