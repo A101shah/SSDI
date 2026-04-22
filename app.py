@@ -304,7 +304,6 @@ with st.sidebar:
         "📊 A3 — Lasso Dependency",
         "📊 A4 — Logistic Effort",
         "📊 A5 — Two-sample t-test",
-        "📊 A6 — Two-Way ANOVA",
         "🔮 P1 — Predict Creativity",
         "🔮 P2 — Predict Dependency",
         "📋 Summary",
@@ -818,70 +817,6 @@ elif section == "📊 A5 — Two-sample t-test":
     axes[1].set(ylabel='Confidence Gain from Training', title='A6 — Training Effect by Role')
     plt.tight_layout()
     show_plot(fig)
-
-# ══════════════════════════════════════════════
-#  📊  A6 — TWO-WAY ANOVA
-# ══════════════════════════════════════════════
-elif section == "📊 A6 — Two-Way ANOVA":
-    st.markdown(f"""
-    <div class="section-card">
-      <div class="section-title">A6 — Does usage type × role jointly predict creativity?</div>
-      {badge("Lab 8 — Two-Way ANOVA + Tukey HSD")}
-      <div class="need-box">
-        <b>Research Need:</b> Test main effects of AI usage type (problem vs creative vs balanced)
-        and role, plus their interaction, on current creativity score.
-      </div>
-      <div class="var-grid">
-        {pill('usage_type','cat')} {pill('role','cat')} <span class="pill-label"> Factors (IVs)</span>
-        &nbsp; {pill('cn','target')} <span class="pill-label"> Outcome (DV)</span>
-      </div>
-      {formula_box("cn ~ C(usage_type) + C(role) + C(usage_type):C(role)")}
-    </div>
-    """, unsafe_allow_html=True)
-
-    df_a7     = df[df['role'].isin(['Student', 'Working professional'])].copy()
-    unique_ut = df_a7['usage_type'].nunique()
-    unique_rl = df_a7['role'].nunique()
-
-    try:
-        formula_a7 = ('cn ~ C(usage_type) + C(role) + C(usage_type):C(role)'
-                      if unique_ut > 1 and unique_rl > 1 else 'cn ~ C(usage_type)')
-        fit_a7    = smf.ols(formula_a7, data=df_a7).fit()
-        anova_tbl = sm.stats.anova_lm(fit_a7, typ=2)
-    except Exception as e:
-        st.error(f"ANOVA failed: {e}")
-        st.stop()
-
-    st.markdown("**Two-Way ANOVA Table**")
-    st.dataframe(anova_tbl.round(4), use_container_width=True)
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-    usage_means = df_a7.groupby('usage_type')['cn'].mean()
-    usage_ns    = df_a7.groupby('usage_type')['cn'].count()
-    ucolors     = {'Balanced': '#555577', 'Creative-focused': C2, 'Problem-focused': C1}
-    for i, (ut, mean) in enumerate(usage_means.items()):
-        axes[0].bar(ut, mean, color=ucolors.get(ut, '#555'), width=0.5)
-        axes[0].text(i, mean + 0.15, f'{mean:.2f}\n(n={usage_ns[ut]})', ha='center', fontsize=9)
-    axes[0].set(ylabel='Mean Creativity Now (cn)', title='A7 — Creativity by Usage Type', ylim=(0, 11))
-
-    for role, style, color in [('Student', 'o-', C2), ('Working professional', 's--', C1)]:
-        subset = df_a7[df_a7['role'] == role].groupby('usage_type')['cn'].mean()
-        if len(subset) > 0:
-            axes[1].plot(subset.index, subset.values, style, color=color,
-                         label=role, lw=2, ms=8)
-    axes[1].set(ylabel='Mean cn', title='A7 — Interaction: Usage Type × Role')
-    axes[1].legend()
-    plt.tight_layout()
-    show_plot(fig)
-
-    if unique_ut >= 2:
-        try:
-            comp  = mc.MultiComparison(df_a7['cn'], df_a7['usage_type'])
-            tukey = comp.tukeyhsd()
-            with st.expander("📋 Tukey HSD Post-hoc"):
-                st.text(str(tukey.summary()))
-        except Exception as e:
-            st.info(f"Tukey HSD not available: {e}")
 
 # ══════════════════════════════════════════════
 #  🔮  P1 — PREDICT CREATIVITY
