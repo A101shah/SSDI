@@ -175,7 +175,7 @@ CB = '#6b9fff'
 #  Priority: 1) survey_data.csv next to app.py
 #            2) Windows Downloads path
 # ─────────────────────────────────────────────
-_WIN_PATH   = (r"C:\Users\Aarav\Downloads"
+_WIN_PATH   = (r"C:\Users\Aarav\OneDrive\Desktop\SSDI_Project"
                r"\AI Dependency & Human Creativity — Research Survey(Sheet1) (2).csv")
 _LOCAL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AI Dependency & Human Creativity — Research Survey(Sheet1) (2).csv")
 
