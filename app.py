@@ -301,11 +301,10 @@ with st.sidebar:
         "🏠 Overview",
         "📊 A1 — Regression to Mean",
         "📊 A2 — Dummy Regression",
-        "📊 A3 — Paired t-test",
-        "📊 A4 — Lasso Dependency",
-        "📊 A5 — Logistic Effort",
-        "📊 A6 — Two-sample t-test",
-        "📊 A7 — Two-Way ANOVA",
+        "📊 A3 — Lasso Dependency",
+        "📊 A4 — Logistic Effort",
+        "📊 A5 — Two-sample t-test",
+        "📊 A6 — Two-Way ANOVA",
         "🔮 P1 — Predict Creativity",
         "🔮 P2 — Predict Dependency",
         "📋 Summary",
@@ -602,90 +601,9 @@ elif section == "📊 A2 — Dummy Regression":
 
     with st.expander("📋 Full OLS Summary"):
         st.text(str(fit_a2.summary()))
-
+        
 # ══════════════════════════════════════════════
-#  📊  A3 — PAIRED T-TEST
-# ══════════════════════════════════════════════
-elif section == "📊 A3 — Paired t-test":
-    st.markdown(f"""
-    <div class="section-card">
-      <div class="section-title">A3 — Has creativity meaningfully changed after AI adoption?</div>
-      {badge("Lab 9 — Shapiro-Wilk + Levene")} {badge("Lab 7 — Paired t-test + 2-prop Z")}
-      <div class="need-box">
-        <b>Research Need:</b> Test whether the before/after creativity difference is statistically
-        significant, and whether more people improved than declined.
-      </div>
-      <div class="var-grid">
-        {pill('cb','cont')} {pill('cn','cont')} <span class="pill-label"> Paired measurements</span>
-        &nbsp; {pill('change','target')} <span class="pill-label"> Derived outcome</span>
-      </div>
-      {formula_box("H₀: μ(cn) = μ(cb)   vs   Hₐ: μ(cn) ≠ μ(cb)")}
-    </div>
-    """, unsafe_allow_html=True)
-
-    d             = df['cn'] - df['cb']
-    W_sw,  p_sw   = stats.shapiro(d)
-    W_lev, p_lev  = stats.levene(df['cb'], df['cn'])
-    t_pair, p_pair = stats.ttest_rel(df['cn'], df['cb'])
-    df_clean      = df[df['change'] >= -3]
-    t_cl, p_cl    = stats.ttest_rel(df_clean['cn'], df_clean['cb'])
-    pos = int((df['change'] > 0).sum())
-    neg = int((df['change'] < 0).sum())
-    total_nz = pos + neg
-    if total_nz > 0:
-        z_a3, p_a3 = proportions_ztest(pos, total_nz, value=0.5, alternative='larger')
-    else:
-        z_a3, p_a3 = 0.0, 1.0
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**Assumption Tests**")
-        st.markdown(f"""
-| Test | Statistic | p-value | Result |
-|------|-----------|---------|--------|
-| Shapiro-Wilk | {W_sw:.3f} | {p_sw:.4f} | {"✅ Normal" if p_sw > 0.05 else "⚠️ Not normal"} |
-| Levene | {W_lev:.3f} | {p_lev:.4f} | {"✅ Equal var" if p_lev > 0.05 else "⚠️ Unequal var"} |
-        """)
-    with col2:
-        st.markdown("**Test Results**")
-        st.markdown(f"""
-| Test | t / z | p-value | Decision |
-|------|-------|---------|----------|
-| Paired t-test | {t_pair:.3f} | {p_pair:.4f} | {"Reject H₀" if p_pair < 0.05 else "Accept H₀"} |
-| Clean sample t | {t_cl:.3f} | {p_cl:.4f} | {"Reject H₀" if p_cl < 0.05 else "Accept H₀"} |
-| 2-prop Z | {z_a3:.3f} | {p_a3:.4f} | {"Reject H₀" if p_a3 < 0.05 else "Accept H₀"} |
-        """)
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-    vals       = df['change'].value_counts().sort_index()
-    bar_colors = [C3 if v < 0 else C1 if v > 0 else '#888' for v in vals.index]
-    axes[0].bar(vals.index, vals.values, color=bar_colors, width=0.7)
-    axes[0].axvline(0, color='#888', lw=1)
-    axes[0].axvline(df['change'].mean(), color=CB, linestyle='--', lw=1.5,
-                    label=f'Mean = {df["change"].mean():.2f}')
-    axes[0].set(xlabel='Creativity change (cn−cb)', ylabel='Count',
-                title='A3 — Distribution of Changes')
-    axes[0].legend()
-
-    x = np.arange(len(df))
-    axes[1].plot(x, df['cb'].values, 'o-', color=CB, label='Before (cb)', lw=1.2, ms=4, alpha=0.8)
-    axes[1].plot(x, df['cn'].values, 's-', color=C1, label='Now (cn)',    lw=1.2, ms=4, alpha=0.8)
-    for i in range(len(df)):
-        col_c = C3 if df['change'].iloc[i] < 0 else '#2a5a3a'
-        axes[1].plot([i, i], [df['cb'].iloc[i], df['cn'].iloc[i]], color=col_c, lw=0.9, alpha=0.5)
-    axes[1].set(xlabel='Respondent index', ylabel='Score', title='A3 — Before vs Now per Person')
-    axes[1].legend()
-    plt.tight_layout()
-    show_plot(fig)
-
-    st.markdown(result_box(
-        f"✅ {pos} IMPROVED · {neg} DECLINED" if p_a3 < 0.05 else "❌ NOT SIGNIFICANT",
-        f"2-prop Z = {z_a3:.3f}, p = {p_a3:.4f}. "
-        f"Mean before = {df['cb'].mean():.2f}, after = {df['cn'].mean():.2f}."
-    ), unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════
-#  📊  A4 — LASSO DEPENDENCY
+#  📊  A3 — LASSO DEPENDENCY
 # ══════════════════════════════════════════════
 elif section == "📊 A4 — Lasso Dependency":
     st.markdown(f"""
@@ -751,7 +669,7 @@ elif section == "📊 A4 — Lasso Dependency":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A5 — LOGISTIC EFFORT
+#  📊  A4 — LOGISTIC EFFORT
 # ══════════════════════════════════════════════
 elif section == "📊 A5 — Logistic Effort":
     st.markdown(f"""
@@ -827,7 +745,7 @@ elif section == "📊 A5 — Logistic Effort":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A6 — TWO-SAMPLE T-TEST
+#  📊  A5 — TWO-SAMPLE T-TEST
 # ══════════════════════════════════════════════
 elif section == "📊 A6 — Two-sample t-test":
     st.markdown(f"""
@@ -903,7 +821,7 @@ elif section == "📊 A6 — Two-sample t-test":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A7 — TWO-WAY ANOVA
+#  📊  A6 — TWO-WAY ANOVA
 # ══════════════════════════════════════════════
 elif section == "📊 A7 — Two-Way ANOVA":
     st.markdown(f"""
