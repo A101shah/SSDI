@@ -1,0 +1,61 @@
+﻿Id,Start time,Completion time,Email,Dail_AVG,AI_Tools,AI_Documents,AI_ProbSolve,AI_Creative,AI_Familiarity,Creative_Before,Creative_Now,ProbSolve_WithoutAI,AI_CreativeDecline,AI_ThinkingDecline,AI_Trust,AI_CreativeDependency,Age_Group,Fieal_Study,Occupation,Gender,AI_Course
+1,4/8/2026 11:33,4/8/2026 11:34,OM.PAREKH49@nmims.in,More than 4 hrs,Claude;Perplexity;ChatGPT;,5,4,4,6–12 months,9,7,2,Agree,Strongly agree,4,"Yes, slightly",18-24,Engineering / Technology,Student,Male,Yes
+2,4/8/2026 11:35,4/8/2026 11:38,anonymous,30 min – 1 hr,ChatGPT;Claude;,3,4,5,1–2 years,9,7,5,Agree,Agree,4,"Yes, slightly",18-24,Engineering / Technology,Student,Male,Yes
+3,4/8/2026 11:36,4/8/2026 11:39,anonymous,2 – 4 hrs,ChatGPT;Gemini;Claude;,4,2,3,More than 2 years,3,7,4,Neutral,Neutral,4,"Yes, significantly",18-24,Engineering / Technology,Student,Male,Yes
+4,4/8/2026 11:49,4/8/2026 11:51,anonymous,2 – 4 hrs,ChatGPT;Gemini;Claude;,4,3,3,More than 2 years,5,7,4,Agree,Neutral,4,"Yes, slightly",18-24,Engineering / Technology,Student,Male,No
+5,4/8/2026 11:49,4/8/2026 11:52,anonymous,2 – 4 hrs,ChatGPT;Gemini;,3,3,3,More than 2 years,8,5,2,Agree,Disagree,3,"Yes, significantly",18-24,Engineering / Technology,Student,Male,No
+6,4/8/2026 11:53,4/8/2026 11:54,anonymous,30 min – 1 hr,ChatGPT;Claude;,2,5,1,1–2 years,9,5,3,Agree,Agree,2,"Yes, slightly",18-24,Engineering / Technology,Student,Male,No
+7,4/8/2026 11:53,4/8/2026 11:55,anonymous,2 – 4 hrs,Gemini;Claude;Perplexity;Other (text box);,2,3,4,More than 2 years,6,9,4,Disagree,Strongly disagree,1,"Yes, slightly",18-24,Engineering / Technology,Student,Female,Yes
+8,4/8/2026 11:55,4/8/2026 11:57,anonymous,More than 4 hrs,ChatGPT;Gemini;Claude;Perplexity;,5,3,4,1–2 years,8,5,2,Agree,Agree,2,"Yes, significantly",18-24,Engineering / Technology,Student,Female,No
+9,4/8/2026 12:00,4/8/2026 12:02,anonymous,1 – 2 hrs,Claude;Gemini;ChatGPT;,4,4,5,More than 2 years,5,8,4,Neutral,Neutral,2,"Yes, slightly",18-24,Engineering / Technology,Student,Male,Yes
+10,4/8/2026 12:12,4/8/2026 12:13,anonymous,2 – 4 hrs,ChatGPT;Claude;Perplexity;,5,4,4,6–12 months,8,5,3,Neutral,Agree,4,"Yes, significantly",18-24,Engineering / Technology,Student,Male,Yes
+11,4/8/2026 12:25,4/8/2026 12:26,anonymous,1 – 2 hrs,ChatGPT;Copilot;,3,3,4,1–2 years,6,5,3,Agree,Agree,5,"Yes, significantly",25-34,Business / Management,Working professional,Female,Yes
+12,4/8/2026 12:32,4/8/2026 12:34,anonymous,2 – 4 hrs,ChatGPT;Claude;Gemini;,4,4,1,6–12 months,6,9,3,Agree,Agree,4,"Yes, slightly",18-24,Engineering / Technology,Student,Male,No
+13,4/8/2026 12:32,4/8/2026 12:34,anonymous,2 – 4 hrs,ChatGPT;Claude;,4,4,4,6–12 months,6,9,3,Agree,Agree,3,"Yes, slightly",18-24,Engineering / Technology,Student,Female,No
+14,4/8/2026 12:44,4/8/2026 12:45,anonymous,Less than 30 min,ChatGPT;Gemini;,3,2,2,1–2 years,8,8,5,Strongly disagree,Strongly disagree,3,"Yes, slightly",18-24,Business / Management,Freelancer,Male,No
+15,4/8/2026 13:13,4/8/2026 13:15,anonymous,30 min – 1 hr,ChatGPT;Claude;,3,4,3,6–12 months,7,7,2,Disagree,Agree,3,"Yes, slightly",18-24,Engineering / Technology,Student,Male,No
+16,4/8/2026 13:46,4/8/2026 13:47,anonymous,30 min – 1 hr,ChatGPT;Gemini;Claude;,4,3,2,More than 2 years,10,10,2,Strongly disagree,Neutral,4,No change,18-24,Engineering / Technology,Student,Male,No
+17,4/8/2026 14:57,4/8/2026 14:58,anonymous,30 min – 1 hr,ChatGPT;Gemini;Claude;,5,3,4,1–2 years,4,7,3,Neutral,Agree,4,"Yes, slightly",18-24,Engineering / Technology,Student,Male,No
+18,4/8/2026 15:56,4/8/2026 15:57,anonymous,More than 4 hrs,ChatGPT;Gemini;Claude;Perplexity;,5,5,5,More than 2 years,7,8,3,Agree,Neutral,2,"Yes, significantly",18-24,Business / Management,Working professional,Male,Yes
+19,4/8/2026 17:03,4/8/2026 17:04,anonymous,Less than 30 min,ChatGPT;Claude;,4,4,1,1–2 years,8,4,2,Agree,Agree,5,"Yes, significantly",18-24,Engineering / Technology,Student,Male,No
+20,4/8/2026 17:20,4/8/2026 17:21,anonymous,30 min – 1 hr,ChatGPT;Claude;Gemini;,2,2,2,6–12 months,3,4,4,Agree,Agree,3,"Yes, slightly",18-24,Engineering / Technology,Student,Male,Yes
+21,4/9/2026 10:11,4/9/2026 10:13,anonymous,2 – 4 hrs,ChatGPT;Claude;Gemini;,2,2,1,Less than 6 months,4,4,4,Neutral,Neutral,3,"Yes, slightly",18-24,Engineering / Technology,Student,Male,Yes
+22,4/9/2026 10:11,4/9/2026 10:14,anonymous,1 – 2 hrs,ChatGPT;Claude;,3,4,2,1–2 years,4,7,2,Agree,Agree,4,"Yes, significantly",18-24,Engineering / Technology,Student,Male,No
+23,4/9/2026 10:44,4/9/2026 10:45,anonymous,1 – 2 hrs,Claude;ChatGPT;,3,4,3,1–2 years,8,9,4,Strongly disagree,Strongly disagree,3,"Yes, slightly",18-24,Engineering / Technology,Student,Male,Yes
+24,4/9/2026 10:42,4/9/2026 10:45,anonymous,1 – 2 hrs,ChatGPT;Claude;,5,4,5,More than 2 years,8,5,2,Strongly agree,Strongly agree,3,"Yes, slightly",18-24,Engineering / Technology,Student,Male,No
+25,4/9/2026 10:54,4/9/2026 10:56,anonymous,30 min – 1 hr,ChatGPT;Gemini;Copilot;,3,2,4,More than 2 years,10,7,4,Agree,Agree,3,"Yes, slightly",18-24,Engineering / Technology,Student,Male,Currently doing one
+26,4/9/2026 11:20,4/9/2026 11:25,anonymous,1 – 2 hrs,Claude;Perplexity;ChatGPT;Gemini;,5,5,5,More than 2 years,5,7,1,Strongly agree,Agree,3,"Yes, significantly",18-24,Engineering / Technology,Student,Female,Yes
+27,4/9/2026 11:20,4/9/2026 11:25,anonymous,Less than 30 min,Gemini;Claude;,5,4,3,More than 2 years,7,8,2,Agree,Strongly agree,4,"Yes, significantly",18-24,Engineering / Technology,Student,Female,No
+28,4/9/2026 13:08,4/9/2026 13:10,anonymous,Less than 30 min,ChatGPT;Gemini;Claude;,2,2,3,More than 2 years,4,7,2,Agree,Agree,2,"Yes, slightly",18-24,Engineering / Technology,Student,Male,No
+29,4/9/2026 13:12,4/9/2026 13:13,anonymous,More than 4 hrs,Gemini;ChatGPT;Claude;Perplexity;,3,4,4,More than 2 years,7,10,4,Strongly disagree,Disagree,1,"Yes, slightly",18-24,Engineering / Technology,Student,Female,Yes
+30,4/9/2026 14:12,4/9/2026 14:13,anonymous,1 – 2 hrs,ChatGPT;Gemini;Claude;,4,4,4,1–2 years,7,5,5,Agree,Agree,2,"Yes, slightly",18-24,Engineering / Technology,Student,Male,No
+31,4/9/2026 14:10,4/9/2026 14:16,anonymous,More than 4 hrs,ChatGPT;Gemini;Copilot;Midjourney;Claude;Perplexity;,4,3,5,More than 2 years,7,8,2,Neutral,Agree,3,"Yes, slightly",18-24,Engineering / Technology,Student,Male,Yes
+32,4/9/2026 14:17,4/9/2026 14:20,anonymous,30 min – 1 hr,ChatGPT;Gemini;,2,3,3,Less than 6 months,6,8,3,Agree,Agree,2,"Yes, slightly",18-24,Engineering / Technology,Student,Female,No
+33,4/9/2026 14:18,4/9/2026 14:22,anonymous,More than 4 hrs,ChatGPT;Gemini;,5,5,5,More than 2 years,10,10,5,Strongly disagree,Strongly disagree,5,"Yes, significantly",18-24,Engineering / Technology,Student,Male,Yes
+34,4/10/2026 20:17,4/10/2026 20:20,anonymous,Less than 30 min,Gemini;,1,1,1,Less than 6 months,3,4,3,Neutral,Neutral,2,No change,45+,Engineering / Technology,Working professional,Male,No
+35,4/10/2026 20:27,4/10/2026 20:35,anonymous,30 min – 1 hr,ChatGPT;Gemini;Copilot;Claude;,4,3,1,More than 2 years,6,7,3,Disagree,Agree,2,"Yes, significantly",45+,Engineering / Technology,Working professional,Male,No
+36,4/10/2026 21:00,4/10/2026 21:03,anonymous,1 – 2 hrs,ChatGPT;Gemini;Copilot;,4,5,3,6–12 months,3,8,3,Neutral,Neutral,2,"Yes, slightly",45+,Engineering / Technology,Working professional,Male,Yes
+37,4/10/2026 21:01,4/10/2026 21:04,anonymous,More than 4 hrs,ChatGPT;Gemini;Copilot;Claude;,4,4,5,6–12 months,6,9,4,Disagree,Neutral,1,"Yes, significantly",35-44,Science / Research,Other,Male,No
+38,4/10/2026 21:03,4/10/2026 21:05,anonymous,More than 4 hrs,Gemini;Claude;,4,4,5,Less than 6 months,7,10,4,Agree,Agree,2,"Yes, significantly",35-44,Engineering / Technology,Working professional,Female,Yes
+39,4/10/2026 21:04,4/10/2026 21:07,anonymous,More than 4 hrs,Gemini;Claude;ChatGPT;,4,4,5,1–2 years,7,9,4,Disagree,Disagree,1,"Yes, significantly",18-24,Engineering / Technology,Working professional,Male,Yes
+40,4/10/2026 21:07,4/10/2026 21:12,anonymous,30 min – 1 hr,Gemini;,4,4,2,6–12 months,9,8,5,Neutral,Agree,3,"Yes, slightly",25-34,Business / Management,Working professional,Female,No
+41,4/10/2026 21:15,4/10/2026 21:17,anonymous,2 – 4 hrs,ChatGPT;Gemini;,4,4,5,More than 2 years,9,9,4,Disagree,Disagree,1,"Yes, significantly",25-34,Engineering / Technology,Working professional,Female,Yes
+42,4/10/2026 21:24,4/10/2026 21:28,anonymous,1 – 2 hrs,Gemini;,3,5,5,6–12 months,2,6,3,Agree,Agree,2,"Yes, slightly",45+,Engineering / Technology,Working professional,Male,No
+43,4/10/2026 21:26,4/10/2026 21:29,anonymous,2 – 4 hrs,ChatGPT;Gemini;Claude;,5,4,4,1–2 years,6,7,4,Neutral,Neutral,1,"Yes, significantly",18-24,Engineering / Technology,Working professional,Female,Currently doing one
+44,4/10/2026 21:33,4/10/2026 21:36,anonymous,2 – 4 hrs,Gemini;,3,2,3,Less than 6 months,6,8,4,Disagree,Disagree,1,"Yes, slightly",25-34,Engineering / Technology,Working professional,Female,No
+45,4/10/2026 21:36,4/10/2026 21:38,anonymous,1 – 2 hrs,ChatGPT;Claude;Gemini;,2,3,3,More than 2 years,8,9,3,Neutral,Agree,2,"Yes, slightly",18-24,Engineering / Technology,Working professional,Female,Yes
+46,4/10/2026 21:46,4/10/2026 21:50,anonymous,2 – 4 hrs,Other (text box);Gemini;ChatGPT;,2,4,1,6–12 months,8,8,3,Neutral,Strongly agree,2,"Yes, slightly",25-34,Engineering / Technology,Working professional,Male,No
+47,4/10/2026 21:53,4/10/2026 21:55,anonymous,1 – 2 hrs,ChatGPT;Gemini;,5,4,4,More than 2 years,8,6,3,Neutral,Neutral,5,"Yes, slightly",25-34,Engineering / Technology,Working professional,Male,No
+48,4/10/2026 22:06,4/10/2026 22:09,anonymous,More than 4 hrs,ChatGPT;Gemini;Claude;,5,3,2,More than 2 years,10,4,3,Strongly agree,Strongly agree,2,"Yes, significantly",25-34,Engineering / Technology,Working professional,Male,No
+49,4/10/2026 22:07,4/10/2026 22:12,anonymous,2 – 4 hrs,Gemini;,5,2,1,6–12 months,10,6,3,Agree,Neutral,1,"Yes, slightly",35-44,Engineering / Technology,Working professional,Male,No
+50,4/10/2026 22:30,4/10/2026 22:33,anonymous,Less than 30 min,ChatGPT;,2,3,2,More than 2 years,7,8,3,Neutral,Agree,1,"Yes, slightly",18-24,Engineering / Technology,Working professional,Male,No
+51,4/10/2026 22:36,4/10/2026 22:41,anonymous,More than 4 hrs,Gemini;Claude;,2,5,5,1–2 years,4,10,3,Neutral,Agree,2,"Yes, significantly",45+,Engineering / Technology,Working professional,Male,Yes
+52,4/10/2026 23:57,4/11/2026 0:01,anonymous,30 min – 1 hr,Gemini;,4,2,3,6–12 months,6,8,3,Agree,Neutral,4,"Yes, slightly",45+,Business / Management,Working professional,Male,No
+53,4/11/2026 0:15,4/11/2026 0:19,anonymous,2 – 4 hrs,ChatGPT;Gemini;Claude;,4,3,3,6–12 months,8,2,2,Strongly agree,Disagree,1,"Yes, significantly",45+,Engineering / Technology,Working professional,Male,Yes
+54,4/11/2026 0:23,4/11/2026 0:25,anonymous,1 – 2 hrs,Gemini;Perplexity;,3,3,4,6–12 months,6,8,4,Strongly disagree,Neutral,1,"Yes, slightly",45+,Engineering / Technology,Working professional,Male,Yes
+55,4/11/2026 0:49,4/11/2026 0:51,anonymous,Less than 30 min,Gemini;,1,1,1,Less than 6 months,3,3,3,Neutral,Neutral,1,"Yes, slightly",45+,Engineering / Technology,Working professional,Male,No
+56,4/11/2026 0:57,4/11/2026 0:59,anonymous,1 – 2 hrs,Gemini;,3,4,3,1–2 years,7,5,3,Agree,Neutral,1,"Yes, slightly",25-34,Engineering / Technology,Working professional,Male,Currently doing one
+57,4/11/2026 0:57,4/11/2026 0:59,anonymous,More than 4 hrs,ChatGPT;Other (text box);,5,3,5,1–2 years,8,9,3,Agree,Neutral,1,"Yes, slightly",18-24,Engineering / Technology,Working professional,Male,Yes
+58,4/11/2026 1:32,4/11/2026 1:35,anonymous,2 – 4 hrs,Gemini;ChatGPT;,4,5,2,More than 2 years,8,7,1,Neutral,Strongly disagree,2,"Yes, significantly",25-34,Business / Management,Working professional,Male,Yes
+59,4/11/2026 1:59,4/11/2026 2:03,anonymous,1 – 2 hrs,Gemini;ChatGPT;,3,2,4,Less than 6 months,7,8,3,Neutral,Neutral,1,"Yes, slightly",45+,Engineering / Technology,Working professional,Male,No
+60,4/11/2026 14:51,4/11/2026 14:55,anonymous,More than 4 hrs,Gemini;ChatGPT;,5,4,3,6–12 months,7,9,3,Disagree,Agree,1,"Yes, significantly",18-24,Engineering / Technology,Working professional,Male,Yes
