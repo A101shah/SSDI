@@ -329,7 +329,7 @@ st.markdown("""
 <div class="hero-header">
   <div class="hero-title">🧠 AI's Impact on Human Creativity<br>&amp; Independent Thinking</div>
   <p class="hero-sub">SSDI Research Project — Statistical Analysis Dashboard</p>
-  <div class="hero-team">Om Parekh (E031) · Madhav Mehta (E056) · Aarav Shah (E057)</div>
+  <div class="hero-team">Om Parekh (E031) · Aarav Shah (E056) · Madhav Mehta (E057)</div>
 </div>
 """, unsafe_allow_html=True)
 
