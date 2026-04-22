@@ -301,10 +301,10 @@ with st.sidebar:
         "🏠 Overview",
         "📊 A1 — Regression to Mean",
         "📊 A2 — Dummy Regression",
-        "📊 A4 — Lasso Dependency",
-        "📊 A5 — Logistic Effort",
-        "📊 A6 — Two-sample t-test",
-        "📊 A7 — Two-Way ANOVA",
+        "📊 A3 — Lasso Dependency",
+        "📊 A4 — Logistic Effort",
+        "📊 A5 — Two-sample t-test",
+        "📊 A6 — Two-Way ANOVA",
         "🔮 P1 — Predict Creativity",
         "🔮 P2 — Predict Dependency",
         "📋 Summary",
@@ -602,12 +602,12 @@ elif section == "📊 A2 — Dummy Regression":
     with st.expander("📋 Full OLS Summary"):
         st.text(str(fit_a2.summary()))
 # ══════════════════════════════════════════════
-#  📊  A4 — LASSO DEPENDENCY
+#  📊  A3 — LASSO DEPENDENCY
 # ══════════════════════════════════════════════
-elif section == "📊 A4 — Lasso Dependency":
+elif section == "📊 A3 — Lasso Dependency":
     st.markdown(f"""
     <div class="section-card">
-      <div class="section-title">A4 — What drives AI dependency scores?</div>
+      <div class="section-title">A3 — What drives AI dependency scores?</div>
       {badge("Lab 10 — Lasso Regression")}
       <div class="need-box">
         <b>Research Need:</b> Use Lasso's automatic variable selection to identify which predictors
@@ -668,12 +668,12 @@ elif section == "📊 A4 — Lasso Dependency":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A5 — LOGISTIC EFFORT
+#  📊  A4 — LOGISTIC EFFORT
 # ══════════════════════════════════════════════
-elif section == "📊 A5 — Logistic Effort":
+elif section == "📊 A4 — Logistic Effort":
     st.markdown(f"""
     <div class="section-card">
-      <div class="section-title">A5 — What predicts whether AI significantly reduced effort?</div>
+      <div class="section-title">A4 — What predicts whether AI significantly reduced effort?</div>
       {badge("Lab 11 — Logistic Regression")}
       <div class="need-box">
         <b>Research Need:</b> Binary classification — predict whether a user reports that AI
@@ -744,12 +744,12 @@ elif section == "📊 A5 — Logistic Effort":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A6 — TWO-SAMPLE T-TEST
+#  📊  A5 — TWO-SAMPLE T-TEST
 # ══════════════════════════════════════════════
-elif section == "📊 A6 — Two-sample t-test":
+elif section == "📊 A5 — Two-sample t-test":
     st.markdown(f"""
     <div class="section-card">
-      <div class="section-title">A6 — Does AI training boost confidence differently by role?</div>
+      <div class="section-title">A5 — Does AI training boost confidence differently by role?</div>
       {badge("Lab 6 — Two-sample Independent t-test (Pooled)")}
       <div class="need-box">
         <b>Research Need:</b> Test whether the confidence in problem-solving without AI differs
@@ -820,12 +820,12 @@ elif section == "📊 A6 — Two-sample t-test":
     show_plot(fig)
 
 # ══════════════════════════════════════════════
-#  📊  A7 — TWO-WAY ANOVA
+#  📊  A6 — TWO-WAY ANOVA
 # ══════════════════════════════════════════════
-elif section == "📊 A7 — Two-Way ANOVA":
+elif section == "📊 A6 — Two-Way ANOVA":
     st.markdown(f"""
     <div class="section-card">
-      <div class="section-title">A7 — Does usage type × role jointly predict creativity?</div>
+      <div class="section-title">A6 — Does usage type × role jointly predict creativity?</div>
       {badge("Lab 8 — Two-Way ANOVA + Tukey HSD")}
       <div class="need-box">
         <b>Research Need:</b> Test main effects of AI usage type (problem vs creative vs balanced)
