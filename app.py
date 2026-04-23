@@ -187,6 +187,7 @@ def _find_csv() -> str | None:
 
 # ─────────────────────────────────────────────
 #  DATA LOADING
+#  All derived column names now match Survey Column names exactly
 # ─────────────────────────────────────────────
 @st.cache_data
 def load_and_clean(path: str) -> pd.DataFrame:
@@ -211,34 +212,38 @@ def load_and_clean(path: str) -> pd.DataFrame:
     }
 
     df = pd.DataFrame()
-    df['hours']      = df_raw['Dail_AVG'].map(hours_map)
-    df['writing']    = pd.to_numeric(df_raw['AI_Documents'],       errors='coerce')
-    df['problem']    = pd.to_numeric(df_raw['AI_ProbSolve'],       errors='coerce')
-    df['creative']   = pd.to_numeric(df_raw['AI_Creative'],        errors='coerce')
-    df['cb']         = pd.to_numeric(df_raw['Creative_Before'],    errors='coerce')
-    df['cn']         = pd.to_numeric(df_raw['Creative_Now'],       errors='coerce')
-    df['conf']       = pd.to_numeric(df_raw['ProbSolve_WithoutAI'],errors='coerce')
-    df['feel_less']  = df_raw['AI_CreativeDecline'].map(likert_map)
-    df['harder']     = df_raw['AI_ThinkingDecline'].map(likert_map)
-    df['accept']     = pd.to_numeric(df_raw['AI_Trust'],           errors='coerce')
-    df['effort_raw'] = df_raw['AI_CreativeDependency'].str.strip()
-    df['role']       = df_raw['Occupation'].str.strip()
-    df['gender']     = df_raw['Gender'].str.strip()
-    df['trained']    = (df_raw['AI_Course'].str.strip().str.lower() == 'yes').astype(int)
+    # ── Column names now match Survey Column names exactly ──
+    df['Dail_AVG']              = df_raw['Dail_AVG'].map(hours_map)
+    df['AI_Documents']          = pd.to_numeric(df_raw['AI_Documents'],        errors='coerce')
+    df['AI_ProbSolve']          = pd.to_numeric(df_raw['AI_ProbSolve'],        errors='coerce')
+    df['AI_Creative']           = pd.to_numeric(df_raw['AI_Creative'],         errors='coerce')
+    df['Creative_Before']       = pd.to_numeric(df_raw['Creative_Before'],     errors='coerce')
+    df['Creative_Now']          = pd.to_numeric(df_raw['Creative_Now'],        errors='coerce')
+    df['ProbSolve_WithoutAI']   = pd.to_numeric(df_raw['ProbSolve_WithoutAI'], errors='coerce')
+    df['AI_CreativeDecline']    = df_raw['AI_CreativeDecline'].map(likert_map)
+    df['AI_ThinkingDecline']    = df_raw['AI_ThinkingDecline'].map(likert_map)
+    df['AI_Trust']              = pd.to_numeric(df_raw['AI_Trust'],            errors='coerce')
+    df['AI_CreativeDependency'] = df_raw['AI_CreativeDependency'].str.strip()
+    df['Occupation']            = df_raw['Occupation'].str.strip()
+    df['Gender']                = df_raw['Gender'].str.strip()
+    df['AI_Course']             = (df_raw['AI_Course'].str.strip().str.lower() == 'yes').astype(int)
 
-    df = df.dropna(subset=['cb','cn','conf','feel_less','harder',
-                           'accept','hours','writing','problem','creative'])
+    df = df.dropna(subset=['Creative_Before', 'Creative_Now', 'ProbSolve_WithoutAI',
+                           'AI_CreativeDecline', 'AI_ThinkingDecline',
+                           'AI_Trust', 'Dail_AVG', 'AI_Documents',
+                           'AI_ProbSolve', 'AI_Creative'])
 
-    df['change']     = df['cn'] - df['cb']
-    df['dep']        = (df['feel_less'] + df['harder'] + df['accept'] / 2.0) / 3.0
-    df['effort_sig'] = df['effort_raw'].str.contains('significantly', case=False, na=False).astype(int)
-    df['role_b']     = (df['role'] == 'Student').astype(int)
+    # ── Derived / computed columns (also survey-name-based) ──
+    df['Change_Score']          = df['Creative_Now'] - df['Creative_Before']          # cn - cb
+    df['Dependency_Index']      = (df['AI_CreativeDecline'] + df['AI_ThinkingDecline'] + df['AI_Trust'] / 2.0) / 3.0
+    df['Effort_Significant']    = df['AI_CreativeDependency'].str.contains('significantly', case=False, na=False).astype(int)
+    df['Occupation_Binary']     = (df['Occupation'] == 'Student').astype(int)         # 1=Student, 0=other
 
     def usage_type(row):
-        if   row['problem'] > row['creative']: return 'Problem-focused'
-        elif row['creative'] > row['problem']: return 'Creative-focused'
-        else:                                  return 'Balanced'
-    df['usage_type'] = df.apply(usage_type, axis=1)
+        if   row['AI_ProbSolve'] > row['AI_Creative']: return 'Problem-focused'
+        elif row['AI_Creative']  > row['AI_ProbSolve']: return 'Creative-focused'
+        else:                                            return 'Balanced'
+    df['Usage_Type'] = df.apply(usage_type, axis=1)
 
     return df.reset_index(drop=True)
 
@@ -286,7 +291,7 @@ if n < 5:
     st.stop()
 
 # ─────────────────────────────────────────────
-#  SIDEBAR  (A5 removed)
+#  SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### 🧭 Navigate")
@@ -328,10 +333,10 @@ st.markdown("""
 #  🏠  OVERVIEW
 # ══════════════════════════════════════════════
 if section == "🏠 Overview":
-    n_students = int((df['role'] == 'Student').sum())
-    n_profs    = int((df['role'] == 'Working professional').sum())
+    n_students = int((df['Occupation'] == 'Student').sum())
+    n_profs    = int((df['Occupation'] == 'Working professional').sum())
     n_others   = int(n - n_students - n_profs)
-    n_trained  = int(df['trained'].sum())
+    n_trained  = int(df['AI_Course'].sum())
 
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Total Respondents", n)
@@ -342,7 +347,7 @@ if section == "🏠 Overview":
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4))
 
-    role_counts = df['role'].value_counts()
+    role_counts = df['Occupation'].value_counts()
     axes[0].bar(role_counts.index, role_counts.values,
                 color=[C1, C2, C3, CB][:len(role_counts)], width=0.5)
     axes[0].set(title='Respondents by Role', ylabel='Count')
@@ -350,12 +355,12 @@ if section == "🏠 Overview":
         axes[0].text(i, v + 0.3, str(v), ha='center', fontsize=11, fontweight='bold')
 
     hr_labels = {0.25: '<30 min', 0.75: '30m-1hr', 1.5: '1-2 hrs', 3.0: '2-4 hrs', 5.0: '>4 hrs'}
-    hours_counts = df['hours'].value_counts().sort_index()
+    hours_counts = df['Dail_AVG'].value_counts().sort_index()
     axes[1].bar([hr_labels.get(h, str(h)) for h in hours_counts.index],
                 hours_counts.values, color=CB, width=0.55, alpha=0.85)
     axes[1].set(title='Daily AI Usage Distribution', ylabel='Count')
 
-    tr_vals = [int((~df['trained'].astype(bool)).sum()), int(df['trained'].sum())]
+    tr_vals = [int((~df['AI_Course'].astype(bool)).sum()), int(df['AI_Course'].sum())]
     axes[2].bar(['Not Trained', 'AI Trained'], tr_vals, color=[C3, C1], width=0.45)
     axes[2].set(title='AI Training Status', ylabel='Count')
     for i, v in enumerate(tr_vals):
@@ -367,25 +372,27 @@ if section == "🏠 Overview":
     st.markdown("""
     <div class="section-card">
       <div class="section-title">📦 Variable Dictionary</div>
-      <div class="section-subtitle">All variables derived from the survey across 4 analyses and 2 predictions</div>
+      <div class="section-subtitle">All variables use exact Survey Column names from the CSV</div>
       <hr class="hdivider">
     """, unsafe_allow_html=True)
 
     var_data = {
-        "Variable":      ["hours","writing","problem","creative","cb","cn","conf",
-                          "feel_less","harder","accept","role","gender","trained",
-                          "effort_raw","usage_type","change","dep","effort_sig","role_b"],
-        "Survey Column": ["Dail_AVG","AI_Documents","AI_ProbSolve","AI_Creative",
-                          "Creative_Before","Creative_Now","ProbSolve_WithoutAI",
-                          "AI_CreativeDecline","AI_ThinkingDecline","AI_Trust",
-                          "Occupation","Gender","AI_Course",
-                          "AI_CreativeDependency","(derived)","(derived)","(derived)","(derived)","(derived)"],
-        "Type":          ["Continuous","Continuous","Continuous","Continuous",
-                          "Continuous","Continuous","Continuous",
-                          "Continuous","Continuous","Continuous",
-                          "Categorical","Categorical","Categorical","Categorical","Categorical",
-                          "Target","Target","Target","Target"],
-        "Description":   [
+        "Variable (= Survey Column)": [
+            "Dail_AVG", "AI_Documents", "AI_ProbSolve", "AI_Creative",
+            "Creative_Before", "Creative_Now", "ProbSolve_WithoutAI",
+            "AI_CreativeDecline", "AI_ThinkingDecline", "AI_Trust",
+            "Occupation", "Gender", "AI_Course",
+            "AI_CreativeDependency", "Usage_Type",
+            "Change_Score", "Dependency_Index", "Effort_Significant", "Occupation_Binary"
+        ],
+        "Type": [
+            "Continuous","Continuous","Continuous","Continuous",
+            "Continuous","Continuous","Continuous",
+            "Continuous","Continuous","Continuous",
+            "Categorical","Categorical","Categorical","Categorical","Categorical",
+            "Target","Target","Target","Target"
+        ],
+        "Description": [
             "Daily AI usage in hours (0.25–5.0)",
             "AI use for documents/writing (1–10)",
             "AI use for problem-solving (1–10)",
@@ -401,9 +408,9 @@ if section == "🏠 Overview":
             "Completed AI training course (Yes=1, No=0)",
             "Raw AI creative dependency response",
             "Problem-focused / Creative-focused / Balanced",
-            "cn − cb  (creativity change score)",
-            "(feel_less + harder + accept/2) / 3",
-            "1 if 'significantly' in response, else 0",
+            "Creative_Now − Creative_Before  (creativity change score)",
+            "(AI_CreativeDecline + AI_ThinkingDecline + AI_Trust/2) / 3",
+            "1 if 'significantly' in AI_CreativeDependency, else 0",
             "1 if Student, 0 otherwise"
         ],
     }
@@ -464,39 +471,40 @@ elif section == "📊 A1 — Regression to Mean":
       </div>
       <b style='color:#9090a8;font-size:0.8rem'>VARIABLES USED</b>
       <div class="var-grid">
-        {pill('cb','cont')} <span class="pill-label">Predictor — Creativity Before</span> &nbsp;
-        {pill('change','target')} <span class="pill-label">Outcome — cn minus cb</span> &nbsp;
-        {pill('group','cat')} <span class="pill-label">Tertile group (Low / Mid / High)</span>
+        {pill('Creative_Before','cont')} <span class="pill-label">Predictor — Self-rated creativity before AI</span> &nbsp;
+        {pill('Change_Score','target')} <span class="pill-label">Outcome — Creative_Now minus Creative_Before</span> &nbsp;
+        {pill('Baseline_Group','cat')} <span class="pill-label">Tertile group (Low / Mid / High)</span>
       </div>
-      {formula_box("change ~ C(group)  [ANOVA]     |     change ~ cb  [OLS]")}
+      {formula_box("ANOVA:  Change_Score ~ Baseline_Group  (Low / Mid / High tertiles)")}
+      {formula_box("OLS:    Change_Score = a + b × Creative_Before")}
     </div>
     """, unsafe_allow_html=True)
 
-    t33, t67 = df['cb'].quantile(0.33), df['cb'].quantile(0.67)
+    t33, t67 = df['Creative_Before'].quantile(0.33), df['Creative_Before'].quantile(0.67)
     df_a1 = df.copy()
-    df_a1['group'] = 'Mid'
-    df_a1.loc[df['cb'] <= t33, 'group'] = 'Low'
-    df_a1.loc[df['cb'] >  t67, 'group'] = 'High'
+    df_a1['Baseline_Group'] = 'Mid'
+    df_a1.loc[df['Creative_Before'] <= t33, 'Baseline_Group'] = 'Low'
+    df_a1.loc[df['Creative_Before'] >  t67, 'Baseline_Group'] = 'High'
 
-    bot = df_a1[df_a1['group'] == 'Low']['change']
-    mid = df_a1[df_a1['group'] == 'Mid']['change']
-    top = df_a1[df_a1['group'] == 'High']['change']
+    bot = df_a1[df_a1['Baseline_Group'] == 'Low']['Change_Score']
+    mid = df_a1[df_a1['Baseline_Group'] == 'Mid']['Change_Score']
+    top = df_a1[df_a1['Baseline_Group'] == 'High']['Change_Score']
 
-    fit_anova = smf.ols('change ~ C(group)', data=df_a1).fit()
+    fit_anova = smf.ols('Change_Score ~ C(Baseline_Group)', data=df_a1).fit()
     anova_tbl = sm.stats.anova_lm(fit_anova, typ=1)
-    fit_a1    = smf.ols('change ~ cb', data=df).fit()
-    slope     = fit_a1.params['cb']
-    pval      = fit_a1.pvalues['cb']
+    fit_a1    = smf.ols('Change_Score ~ Creative_Before', data=df_a1).fit()
+    slope     = fit_a1.params['Creative_Before']
+    pval      = fit_a1.pvalues['Creative_Before']
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("OLS Slope (cb)", f"{slope:.3f}", help="Negative → high baseline predicts decline")
+    c1.metric("OLS Slope (Creative_Before)", f"{slope:.3f}", help="Negative → high baseline predicts decline")
     c2.metric("p-value", f"{pval:.4f}", delta="Significant" if pval < 0.05 else "Not sig")
     c3.metric("R²", f"{fit_a1.rsquared:.3f}")
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
-    colors = [C1 if c <= t33 else C3 if c > t67 else C2 for c in df['cb']]
-    axes[0].scatter(df['cb'], df['change'], c=colors, s=60, alpha=0.85, zorder=3)
-    x_line = np.linspace(df['cb'].min(), df['cb'].max(), 100)
+    colors = [C1 if c <= t33 else C3 if c > t67 else C2 for c in df['Creative_Before']]
+    axes[0].scatter(df['Creative_Before'], df['Change_Score'], c=colors, s=60, alpha=0.85, zorder=3)
+    x_line = np.linspace(df['Creative_Before'].min(), df['Creative_Before'].max(), 100)
     axes[0].plot(x_line, fit_a1.params['Intercept'] + slope * x_line,
                  color=CB, lw=2, label=f'slope = {slope:.2f}')
     axes[0].axhline(0, color='#444', lw=0.8)
@@ -505,7 +513,7 @@ elif section == "📊 A1 — Regression to Mean":
         mpatches.Patch(color=C2, label='Mid'),
         mpatches.Patch(color=C3, label=f'High (>{t67:.0f})'),
     ], loc='upper right', fontsize=8)
-    axes[0].set(xlabel='Creativity Before (cb)', ylabel='Change (cn−cb)',
+    axes[0].set(xlabel='Creative_Before', ylabel='Change_Score (Creative_Now − Creative_Before)',
                 title='A1 — Baseline vs Change')
 
     group_means = [bot.mean(), mid.mean(), top.mean()]
@@ -515,7 +523,7 @@ elif section == "📊 A1 — Regression to Mean":
     for i, v in enumerate(group_means):
         axes[1].text(i, v + (0.1 if v >= 0 else -0.25), f'{v:.2f}',
                      ha='center', fontsize=10, fontweight='bold')
-    axes[1].set(ylabel='Mean creativity change', title='A1 — Mean change by baseline group')
+    axes[1].set(ylabel='Mean Change_Score', title='A1 — Mean change by Baseline_Group')
     plt.tight_layout()
     show_plot(fig)
 
@@ -525,7 +533,7 @@ elif section == "📊 A1 — Regression to Mean":
     st.markdown(result_box(
         "✅ SIGNIFICANT (p<0.05)" if pval < 0.05 else "❌ NOT SIGNIFICANT",
         f"OLS slope = {slope:.3f}, p = {pval:.4f}. "
-        f"Every +1 in baseline creativity → {slope:.2f} change in creativity score."
+        f"Every +1 in Creative_Before → {slope:.2f} change in Change_Score."
     ), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════
@@ -541,15 +549,15 @@ elif section == "📊 A2 — Dummy Regression":
         most significantly predicts a respondent's current creativity score.
       </div>
       <div class="var-grid">
-        {pill('hours','cont')} {pill('role_b','cat')} {pill('trained','cat')}
+        {pill('Dail_AVG','cont')} {pill('Occupation_Binary','cat')} {pill('AI_Course','cat')}
         <span class="pill-label"> Predictors</span> &nbsp;
-        {pill('cn','target')} <span class="pill-label"> Outcome</span>
+        {pill('Creative_Now','target')} <span class="pill-label"> Outcome</span>
       </div>
-      {formula_box("cn ~ hours + role_b + trained")}
+      {formula_box("Creative_Now = a + b1×Dail_AVG + b2×Occupation_Binary + b3×AI_Course")}
     </div>
     """, unsafe_allow_html=True)
 
-    fit_a2 = smf.ols('cn ~ hours + role_b + trained', data=df).fit()
+    fit_a2 = smf.ols('Creative_Now ~ Dail_AVG + Occupation_Binary + AI_Course', data=df).fit()
 
     c1, c2, c3 = st.columns(3)
     c1.metric("R²",       f"{fit_a2.rsquared:.3f}")
@@ -574,12 +582,12 @@ elif section == "📊 A2 — Dummy Regression":
     axes[0].set(title='A2 — Regression Coefficients\n(blue = significant)', ylabel='Coefficient')
 
     bp = axes[1].boxplot(
-        [df[df['trained'] == 0]['cn'], df[df['trained'] == 1]['cn']],
+        [df[df['AI_Course'] == 0]['Creative_Now'], df[df['AI_Course'] == 1]['Creative_Now']],
         labels=['Not Trained', 'AI Trained'], patch_artist=True
     )
     bp['boxes'][0].set_facecolor('#2a1a1a'); bp['boxes'][0].set_edgecolor(C3)
     bp['boxes'][1].set_facecolor('#0e2a1a'); bp['boxes'][1].set_edgecolor(C1)
-    axes[1].set(ylabel='Creativity Now (cn)', title='A2 — Current Creativity by Training')
+    axes[1].set(ylabel='Creative_Now', title='A2 — Creative_Now by AI_Course')
     plt.tight_layout()
     show_plot(fig)
 
@@ -591,12 +599,10 @@ elif section == "📊 A2 — Dummy Regression":
 # ══════════════════════════════════════════════
 elif section == "📊 A3 — Lasso Dependency":
 
-    # ── Build feature matrix: get_dummies for role, binary trained as-is ──
-    # Excluded: feel_less, harder, accept — they define dep by formula (circular)
-    cont_feats  = ['hours', 'writing', 'problem', 'creative', 'conf']
-    bin_feats   = ['trained']   # already 0/1
+    cont_feats  = ['Dail_AVG', 'AI_Documents', 'AI_ProbSolve', 'AI_Creative', 'ProbSolve_WithoutAI']
+    bin_feats   = ['AI_Course']
 
-    role_dummies = pd.get_dummies(df['role'], prefix='role', drop_first=True).astype(float)
+    role_dummies = pd.get_dummies(df['Occupation'], prefix='Occupation', drop_first=True).astype(float)
     role_cols    = role_dummies.columns.tolist()
 
     df_a3_feats = pd.concat(
@@ -608,26 +614,23 @@ elif section == "📊 A3 — Lasso Dependency":
 
     scaler4 = StandardScaler()
     X4      = scaler4.fit_transform(df_a3_feats)
-    y4      = df['dep'].values
+    y4      = df['Dependency_Index'].values
 
-    # Readable short names for display
     display_names = []
     for f in all_feats:
-        if f.startswith('role_'):
+        if f.startswith('Occupation_'):
             display_names.append(
-                f.replace('role_Working professional', 'role:Prof')
-                 .replace('role_', 'role:')
+                f.replace('Occupation_Working professional', 'Occ:Prof')
+                 .replace('Occupation_', 'Occ:')
             )
         else:
             display_names.append(f)
 
-    # ── LassoCV: find optimal alpha from data ─────────────────────────────
     lasso_cv = LassoCV(cv=5, max_iter=10000, random_state=42,
                        alphas=np.logspace(-4, 0, 100))
     lasso_cv.fit(X4, y4)
     best_alpha = float(lasso_cv.alpha_)
 
-    # Find alpha that first zeroes ALL variables → use as hard ceiling
     alpha_null = best_alpha
     for a in np.linspace(best_alpha, 2.0, 500):
         test = Lasso(alpha=a, max_iter=10000).fit(X4, y4)
@@ -642,30 +645,24 @@ elif section == "📊 A3 — Lasso Dependency":
     <div class="section-card">
       <div class="section-title">A3 — Which usage behaviours drive AI dependency?</div>
       {badge("Lab 10 — Lasso Regression")} {badge("Lab 10 — get_dummies encoding")}
-      <div class="need-box">
-        <b>Research Need:</b> Use Lasso's automatic variable selection to identify which
-        <i>independent behavioural inputs</i> predict the composite dependency index.
-        Categorical variable <code>role</code> is one-hot encoded via
-        <code>pd.get_dummies(drop_first=True)</code> before scaling.
-        Attitudinal items <code>feel_less</code>, <code>harder</code>, <code>accept</code>
-        are excluded — they mathematically define <code>dep</code> by formula
-        and including them causes circular dependency.
-      </div>
+      <br>
       <b style='color:#9090a8;font-size:0.8rem'>VARIABLES USED</b>
+      <br>
       <div class="var-grid">
-        {pill('hours','cont')} {pill('writing','cont')} {pill('problem','cont')}
-        {pill('creative','cont')} {pill('conf','cont')}
-        {pill('trained','cat')} {pill('role → get_dummies','cat')}
+        {pill('Dail_AVG','cont')} {pill('AI_Documents','cont')} {pill('AI_ProbSolve','cont')}
+        {pill('AI_Creative','cont')} {pill('ProbSolve_WithoutAI','cont')}
+        {pill('AI_Course','cat')} {pill('Occupation → dummies','cat')}
         <span class="pill-label"> All standardised after encoding</span>
-        &nbsp; {pill('dep','target')} <span class="pill-label"> Outcome — dependency index</span>
+        &nbsp; {pill('Dependency_Index','target')} <span class="pill-label"> Outcome</span>
       </div>
+      {formula_box("Lasso shrinks coefficients; variables with zero coefficient are excluded from the model")}
     </div>
     """, unsafe_allow_html=True)
 
-    with st.expander("📋 Dummy Encoding — role categories"):
+    with st.expander("📋 Dummy Encoding — Occupation categories"):
         enc_preview = pd.concat(
-            [df[['role']].reset_index(drop=True), role_dummies.reset_index(drop=True)], axis=1
-        ).drop_duplicates().sort_values('role').reset_index(drop=True)
+            [df[['Occupation']].reset_index(drop=True), role_dummies.reset_index(drop=True)], axis=1
+        ).drop_duplicates().sort_values('Occupation').reset_index(drop=True)
         st.dataframe(enc_preview, use_container_width=True, hide_index=True)
         st.caption("drop_first=True drops one category as the reference baseline (dummy trap prevention).")
 
@@ -709,7 +706,6 @@ elif section == "📊 A3 — Lasso Dependency":
 
     fig, axes = plt.subplots(1, 2, figsize=(13, max(4.5, len(all_feats) * 0.6)))
 
-    # Left: coefficient bar chart
     bcolors = [C2 if abs(c) > 1e-4 else '#2a2a3a' for c in lasso.coef_]
     axes[0].barh(display_names, lasso.coef_, color=bcolors, height=0.6)
     axes[0].axvline(0, color='#888', lw=0.8)
@@ -726,7 +722,6 @@ elif section == "📊 A3 — Lasso Dependency":
         mpatches.Patch(color='#2a2a3a', label='Zeroed', edgecolor='#555')
     ])
 
-    # Right: regularisation path
     alphas_path = np.linspace(best_alpha * 0.1, slider_max, 80)
     n_kept_path = [int(np.sum(np.abs(Lasso(alpha=a, max_iter=10000).fit(X4, y4).coef_) > 1e-4))
                    for a in alphas_path]
@@ -743,20 +738,6 @@ elif section == "📊 A3 — Lasso Dependency":
     plt.tight_layout()
     show_plot(fig)
 
-    st.markdown(f"""
-    <div class="need-box" style="margin-top:0.5rem">
-      <b>Encoding:</b> <code>role</code> had {df['role'].nunique()} unique values —
-      converted to {len(role_cols)} dummy column(s) via
-      <code>pd.get_dummies(drop_first=True)</code>, then all columns standardised
-      together via <code>StandardScaler</code> before Lasso fitting.
-      <br><br>
-      <b>Slider design:</b> The upper limit is capped just before the model hits
-      all-zero coefficients, so every position shows meaningful variable selection.
-      CV-best alpha ({best_alpha:.4f}) is chosen by 5-fold cross-validation.
-    </div>
-    """, unsafe_allow_html=True)
-
-
 # ══════════════════════════════════════════════
 #  📊  A4 — LOGISTIC EFFORT  (+ K-Fold CV)
 # ══════════════════════════════════════════════
@@ -771,21 +752,22 @@ elif section == "📊 A4 — Logistic Effort":
         K-Fold CV validates that the model generalises beyond the training sample.
       </div>
       <div class="var-grid">
-        {pill('hours','cont')} {pill('writing','cont')} {pill('problem','cont')}
-        {pill('creative','cont')} {pill('trained','cat')}
+        {pill('Dail_AVG','cont')} {pill('AI_Documents','cont')} {pill('AI_ProbSolve','cont')}
+        {pill('AI_Creative','cont')} {pill('AI_Course','cat')}
         <span class="pill-label"> Predictors</span>
-        &nbsp; {pill('effort_sig','target')} <span class="pill-label"> Binary Outcome (0/1)</span>
+        &nbsp; {pill('Effort_Significant','target')} <span class="pill-label"> Binary Outcome (0 = No, 1 = Yes)</span>
       </div>
-      {formula_box("P(effort_sig=1) = σ(β₀ + β₁·hours + β₂·writing + β₃·problem + β₄·creative + β₅·trained)")}
+      {formula_box("Logistic Regression: predicts probability (0 to 1) that Effort_Significant = 1")}
+      {formula_box("Predictors used: Dail_AVG, AI_Documents, AI_ProbSolve, AI_Creative, AI_Course")}
     </div>
     """, unsafe_allow_html=True)
 
-    feats5 = ['hours','writing','problem','creative','trained']
+    feats5 = ['Dail_AVG', 'AI_Documents', 'AI_ProbSolve', 'AI_Creative', 'AI_Course']
     X5     = StandardScaler().fit_transform(df[feats5])
-    y5     = df['effort_sig'].values
+    y5     = df['Effort_Significant'].values
 
     if len(np.unique(y5)) < 2:
-        st.warning("⚠️ Only one class detected in effort_sig — logistic regression requires both 0 and 1.")
+        st.warning("⚠️ Only one class detected in Effort_Significant — logistic regression requires both 0 and 1.")
         st.info(f"'Significantly' found in {int(y5.sum())} of {len(y5)} responses.")
         st.stop()
 
@@ -796,7 +778,6 @@ elif section == "📊 A4 — Logistic Effort":
     cm     = confusion_matrix(y5, y_pred, labels=[0, 1])
     acc    = accuracy_score(y5, y_pred)
 
-    # ── K-Fold Cross-Validation (Lab 11) ──────────────────────────
     k_folds    = st.slider("Number of K-Fold splits", 3, 10, 5, key='a4_kfold')
     kfold      = KFold(n_splits=k_folds, shuffle=True, random_state=42)
     cv_scores  = cross_val_score(
@@ -808,9 +789,8 @@ elif section == "📊 A4 — Logistic Effort":
     c1.metric("Training Accuracy",    f"{acc * 100:.1f}%")
     c2.metric(f"{k_folds}-Fold CV Mean", f"{cv_scores.mean() * 100:.1f}%")
     c3.metric("CV Std Dev",           f"± {cv_scores.std() * 100:.1f}%")
-    c4.metric("effort_sig = 1",       int(y5.sum()))
+    c4.metric("Effort_Significant = 1", int(y5.sum()))
 
-    # CV fold scores bar chart + confusion matrix
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
 
     fold_labels = [f'Fold {i+1}' for i in range(k_folds)]
@@ -840,7 +820,6 @@ elif section == "📊 A4 — Logistic Effort":
     plt.tight_layout()
     show_plot(fig)
 
-    # Odds ratio table
     st.markdown("#### Odds Ratios")
     or_df = pd.DataFrame({
         'Variable':   feats5,
@@ -883,17 +862,17 @@ elif section == "🔮 P1 — Predict Creativity":
         VIF checks confirm predictors are not collinear.
       </div>
       <div class="var-grid">
-        {pill('cb','cont')} {pill('hours','cont')} {pill('creative','cont')}
-        {pill('problem','cont')} {pill('conf','cont')} {pill('trained','cat')}
+        {pill('Creative_Before','cont')} {pill('Dail_AVG','cont')} {pill('AI_Creative','cont')}
+        {pill('AI_ProbSolve','cont')} {pill('ProbSolve_WithoutAI','cont')} {pill('AI_Course','cat')}
         <span class="pill-label"> Predictors</span>
-        &nbsp; {pill('cn','target')} <span class="pill-label"> Outcome</span>
+        &nbsp; {pill('Creative_Now','target')} <span class="pill-label"> Outcome</span>
       </div>
-      {formula_box("cn ~ cb + hours + creative + problem + conf + trained")}
+      {formula_box("Creative_Now = a + b1×Creative_Before + b2×Dail_AVG + b3×AI_Creative + b4×AI_ProbSolve + b5×ProbSolve_WithoutAI + b6×AI_Course")}
     </div>
     """, unsafe_allow_html=True)
 
-    p1_feats = ['cb','hours','creative','problem','conf','trained']
-    fit_p1   = smf.ols('cn ~ cb + hours + creative + problem + conf + trained', data=df).fit()
+    p1_feats = ['Creative_Before', 'Dail_AVG', 'AI_Creative', 'AI_ProbSolve', 'ProbSolve_WithoutAI', 'AI_Course']
+    fit_p1   = smf.ols('Creative_Now ~ Creative_Before + Dail_AVG + AI_Creative + AI_ProbSolve + ProbSolve_WithoutAI + AI_Course', data=df).fit()
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("R²",        f"{fit_p1.rsquared:.3f}")
@@ -901,7 +880,6 @@ elif section == "🔮 P1 — Predict Creativity":
     c3.metric("p (model)", f"{fit_p1.f_pvalue:.5f}")
     c4.metric("RMSE",      f"{np.sqrt(fit_p1.mse_resid):.3f}")
 
-    # ── VIF Table (Lab 10) ─────────────────────────────────────────
     st.markdown("#### Multicollinearity Check — Variance Inflation Factors")
     X_vif = df[p1_feats].copy().astype(float)
     X_vif = sm.add_constant(X_vif)
@@ -933,28 +911,28 @@ elif section == "🔮 P1 — Predict Creativity":
 
     st.markdown("---")
     st.markdown("### 🎯 Interactive Predictor")
-    st.markdown("Adjust sliders to predict creativity now (cn):")
+    st.markdown("Adjust sliders to predict Creative_Now:")
 
     col1, col2 = st.columns(2)
     with col1:
-        p_cb       = st.slider("Creativity BEFORE AI (cb, 1–10)", 1, 10, 7, key='p1_cb')
+        p_cb       = st.slider("Creative_Before — Creativity BEFORE AI (1–10)", 1, 10, 7, key='p1_cb')
         p_hours    = st.select_slider(
-            "Daily AI usage", [0.25, 0.75, 1.5, 3.0, 5.0], value=1.5,
+            "Dail_AVG — Daily AI usage", [0.25, 0.75, 1.5, 3.0, 5.0], value=1.5,
             format_func=lambda x: {0.25:"<30min",0.75:"30m-1hr",1.5:"1-2hr",
                                    3.0:"2-4hr",5.0:">4hr"}[x],
             key='p1_hours'
         )
-        p_creative = st.slider("AI use for creative tasks (1–10)", 1, 10, 5, key='p1_creative')
+        p_creative = st.slider("AI_Creative — AI use for creative tasks (1–10)", 1, 10, 5, key='p1_creative')
     with col2:
-        p_problem  = st.slider("AI use for problem-solving (1–10)", 1, 10, 5, key='p1_problem')
-        p_conf     = st.slider("Problem-solving ability without AI (1–10)", 1, 10, 4, key='p1_conf')
-        p_trained  = st.radio("Completed AI training course?", ["No", "Yes"],
+        p_problem  = st.slider("AI_ProbSolve — AI use for problem-solving (1–10)", 1, 10, 5, key='p1_problem')
+        p_conf     = st.slider("ProbSolve_WithoutAI — Ability without AI (1–10)", 1, 10, 4, key='p1_conf')
+        p_trained  = st.radio("AI_Course — Completed AI training course?", ["No", "Yes"],
                               horizontal=True, key='p1_trained')
 
     p_trained_bin = 1 if p_trained == "Yes" else 0
     new_data = pd.DataFrame([{
-        'cb': p_cb, 'hours': p_hours, 'creative': p_creative,
-        'problem': p_problem, 'conf': p_conf, 'trained': p_trained_bin
+        'Creative_Before': p_cb, 'Dail_AVG': p_hours, 'AI_Creative': p_creative,
+        'AI_ProbSolve': p_problem, 'ProbSolve_WithoutAI': p_conf, 'AI_Course': p_trained_bin
     }])
 
     pred_frame = fit_p1.get_prediction(new_data).summary_frame(alpha=0.05)
@@ -976,7 +954,7 @@ elif section == "🔮 P1 — Predict Creativity":
       <div style='color:#5a7aaa;font-size:0.85rem;margin:0.3rem 0'>
         95% CI: [{ci_lo:.2f}, {ci_hi:.2f}]</div>
       <div style='font-size:1rem;color:#6b9fff;margin-top:0.5rem'>
-        {direction} &nbsp;|&nbsp; Expected change from baseline: {change_exp:+.2f}
+        {direction} &nbsp;|&nbsp; Expected change from Creative_Before: {change_exp:+.2f}
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -984,11 +962,11 @@ elif section == "🔮 P1 — Predict Creativity":
     fig, ax = plt.subplots(figsize=(7, 3.5))
     ax.errorbar(0, pred_val, yerr=[[pred_val - ci_lo], [ci_hi - pred_val]],
                 fmt='o', color=CB, markersize=14, capsize=12, lw=2.5, label='Your prediction')
-    ax.axhline(df['cn'].mean(), color='#555', linestyle='--', lw=1.2,
-               label=f"Sample mean = {df['cn'].mean():.1f}")
-    ax.axhline(p_cb, color=C3, linestyle=':', lw=1.2, label=f"Your baseline cb = {p_cb}")
+    ax.axhline(df['Creative_Now'].mean(), color='#555', linestyle='--', lw=1.2,
+               label=f"Sample mean = {df['Creative_Now'].mean():.1f}")
+    ax.axhline(p_cb, color=C3, linestyle=':', lw=1.2, label=f"Your Creative_Before = {p_cb}")
     ax.set_xlim(-1, 1); ax.set_xticks([0]); ax.set_xticklabels(['Your Profile'])
-    ax.set(ylabel='Predicted Creativity Now (cn)', title='P1 — Prediction + 95% CI')
+    ax.set(ylabel='Predicted Creative_Now', title='P1 — Prediction + 95% CI')
     ax.legend()
     plt.tight_layout()
     show_plot(fig)
@@ -1010,19 +988,20 @@ elif section == "🔮 P2 — Predict Dependency":
         per role, then test if students and professionals differ significantly.
       </div>
       <div class="var-grid">
-        {pill('dep','cont')} <span class="pill-label"> Dependency index</span>
-        &nbsp; {pill('role','cat')} <span class="pill-label"> Grouping variable</span>
-        &nbsp; {pill('dep > threshold','target')} <span class="pill-label"> Binary classification</span>
+        {pill('Dependency_Index','cont')} <span class="pill-label"> Dependency score per respondent</span>
+        &nbsp; {pill('Occupation','cat')} <span class="pill-label"> Grouping variable</span>
+        &nbsp; {pill('Dependency_Index > threshold','target')} <span class="pill-label"> High dependency flag (0/1)</span>
       </div>
-      {formula_box("L(p | k,n) = C(n,k)·pᵏ·(1-p)^(n-k)   →   MLE: p̂ = k/n")}
+      {formula_box("MLE:   Best estimate of p = (number of high-dependency respondents) / (total in group)")}
+      {formula_box("Z-test: Tests whether Students and Professionals have different high-dependency rates")}
     </div>
     """, unsafe_allow_html=True)
 
-    high_thresh = st.slider("High-dependency threshold (dep score 1–5)", 1.0, 5.0, 3.0, 0.1,
+    high_thresh = st.slider("High-dependency threshold (Dependency_Index 1–5)", 1.0, 5.0, 3.0, 0.1,
                             key='p2_thresh')
 
-    stu_dep = df[df['role'] == 'Student']['dep']
-    pro_dep = df[df['role'] == 'Working professional']['dep']
+    stu_dep = df[df['Occupation'] == 'Student']['Dependency_Index']
+    pro_dep = df[df['Occupation'] == 'Working professional']['Dependency_Index']
     ns, hs  = len(stu_dep), int((stu_dep > high_thresh).sum())
     np2, hp = len(pro_dep), int((pro_dep > high_thresh).sum())
 
@@ -1070,7 +1049,7 @@ elif section == "🔮 P2 — Predict Dependency":
         axes[1].text(i, phat + 0.02, f'{phat:.1%}',
                      ha='center', fontsize=13, fontweight='bold', color='white')
     top_y = min(1.0, max(mle_s, mle_p) * 1.5 + 0.15)
-    axes[1].set(ylabel=f'Proportion with dep > {high_thresh}',
+    axes[1].set(ylabel=f'Proportion with Dependency_Index > {high_thresh}',
                 title='P2 — High-Dependency Rates + 95% CI', ylim=(0, top_y))
     plt.tight_layout()
     show_plot(fig)
@@ -1080,18 +1059,18 @@ elif section == "🔮 P2 — Predict Dependency":
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        u_feel = st.slider("Feel less creative using AI "
+        u_feel = st.slider("AI_CreativeDecline — Feel less creative using AI "
                            "(1 = Strongly Disagree, 5 = Strongly Agree)",
                            1, 5, 3, key='p2_feel')
     with col2:
-        u_hard = st.slider("Independent thinking feels harder (1–5)", 1, 5, 3, key='p2_hard')
+        u_hard = st.slider("AI_ThinkingDecline — Independent thinking feels harder (1–5)", 1, 5, 3, key='p2_hard')
     with col3:
-        u_acc  = st.slider("Trust / accept AI outputs without checking (1–10)",
+        u_acc  = st.slider("AI_Trust — Trust / accept AI outputs without checking (1–10)",
                            1, 10, 5, key='p2_acc')
 
     u_dep  = (u_feel + u_hard + u_acc / 2.0) / 3.0
     u_high = u_dep > high_thresh
-    u_role = st.radio("Your role:", ["Student", "Working professional"],
+    u_role = st.radio("Your Occupation:", ["Student", "Working professional"],
                       horizontal=True, key='p2_role')
     mle_ref = mle_s if u_role == "Student" else mle_p
 
@@ -1099,7 +1078,7 @@ elif section == "🔮 P2 — Predict Dependency":
     <div style='background:#0e1e2e;border:1px solid #1e3a5f;border-radius:10px;
                 padding:1.5rem;margin-top:1rem'>
       <div style='font-family:Space Mono,monospace;font-size:0.8rem;color:#5a7aaa'>
-        YOUR DEPENDENCY SCORE</div>
+        YOUR DEPENDENCY_INDEX SCORE</div>
       <div style='font-family:Space Mono,monospace;font-size:2.4rem;
                   font-weight:700;color:#fff'>{u_dep:.2f} / 5.0</div>
       <div style='font-size:1rem;margin-top:0.5rem;
@@ -1130,36 +1109,34 @@ elif section == "📋 Summary":
     </div>
     """, unsafe_allow_html=True)
 
-    # Re-run all models for summary
-    fit_a1_s  = smf.ols('change ~ cb', data=df).fit()
-    fit_a2_s  = smf.ols('cn ~ hours + role_b + trained', data=df).fit()
+    fit_a1_s  = smf.ols('Change_Score ~ Creative_Before', data=df).fit()
+    fit_a2_s  = smf.ols('Creative_Now ~ Dail_AVG + Occupation_Binary + AI_Course', data=df).fit()
 
-    pos_s = int((df['change'] > 0).sum())
-    neg_s = int((df['change'] < 0).sum())
+    pos_s = int((df['Change_Score'] > 0).sum())
+    neg_s = int((df['Change_Score'] < 0).sum())
     tnz_s = pos_s + neg_s
     if tnz_s > 0:
         z_a3_s, p_a3_s = proportions_ztest(pos_s, tnz_s, value=0.5, alternative='larger')
     else:
         z_a3_s, p_a3_s = 0.0, 1.0
 
-    # Summary Lasso — mirrors A3: get_dummies for role, exclude circular vars
-    _cont_s   = ['hours', 'writing', 'problem', 'creative', 'conf']
-    _bin_s    = ['trained']
-    _rdummies = pd.get_dummies(df['role'], prefix='role', drop_first=True).astype(float)
+    _cont_s   = ['Dail_AVG', 'AI_Documents', 'AI_ProbSolve', 'AI_Creative', 'ProbSolve_WithoutAI']
+    _bin_s    = ['AI_Course']
+    _rdummies = pd.get_dummies(df['Occupation'], prefix='Occupation', drop_first=True).astype(float)
     _rcols    = _rdummies.columns.tolist()
     _df_s     = pd.concat([df[_cont_s + _bin_s].reset_index(drop=True),
                            _rdummies.reset_index(drop=True)], axis=1)
     feats4_s  = _cont_s + _bin_s + _rcols
     X4_s      = StandardScaler().fit_transform(_df_s)
-    y4_s      = df['dep'].values
+    y4_s      = df['Dependency_Index'].values
     lasso_s   = LassoCV(cv=5, max_iter=10000, random_state=42,
                         alphas=np.logspace(-4, 0, 100))
     lasso_s.fit(X4_s, y4_s)
     kept_s    = [f for f, c in zip(feats4_s, lasso_s.coef_) if abs(c) > 1e-4]
 
-    feats5_s = ['hours','writing','problem','creative','trained']
+    feats5_s = ['Dail_AVG', 'AI_Documents', 'AI_ProbSolve', 'AI_Creative', 'AI_Course']
     X5_s     = StandardScaler().fit_transform(df[feats5_s])
-    y5_s     = df['effort_sig'].values
+    y5_s     = df['Effort_Significant'].values
     acc_s    = 0.0
     cv_mean_s = 0.0
     if len(np.unique(y5_s)) >= 2:
@@ -1172,15 +1149,14 @@ elif section == "📋 Summary":
         )
         cv_mean_s = cv_scores_s.mean()
 
-    fit_p1_s = smf.ols('cn ~ cb + hours + creative + problem + conf + trained', data=df).fit()
+    fit_p1_s = smf.ols('Creative_Now ~ Creative_Before + Dail_AVG + AI_Creative + AI_ProbSolve + ProbSolve_WithoutAI + AI_Course', data=df).fit()
 
-    # VIF for summary
-    X_vif_s = sm.add_constant(df[['cb','hours','creative','problem','conf','trained']].astype(float))
+    X_vif_s = sm.add_constant(df[['Creative_Before','Dail_AVG','AI_Creative','AI_ProbSolve','ProbSolve_WithoutAI','AI_Course']].astype(float))
     vif_max  = max(variance_inflation_factor(X_vif_s.values, i)
                    for i in range(1, X_vif_s.shape[1]))
 
-    stu_d_s   = df[df['role'] == 'Student']['dep']
-    pro_d_s   = df[df['role'] == 'Working professional']['dep']
+    stu_d_s   = df[df['Occupation'] == 'Student']['Dependency_Index']
+    pro_d_s   = df[df['Occupation'] == 'Working professional']['Dependency_Index']
     ns_s, hs_s  = len(stu_d_s), int((stu_d_s > 3.0).sum())
     np2_s, hp_s = len(pro_d_s), int((pro_d_s > 3.0).sum())
     p_rng_s   = np.linspace(0.001, 0.999, 1000)
@@ -1193,15 +1169,15 @@ elif section == "📋 Summary":
         except Exception:
             pass
 
-    trained_coef_s = fit_a2_s.params.get('trained', float('nan'))
-    trained_pval_s = fit_a2_s.pvalues.get('trained', float('nan'))
+    trained_coef_s = fit_a2_s.params.get('AI_Course', float('nan'))
+    trained_pval_s = fit_a2_s.pvalues.get('AI_Course', float('nan'))
 
     rows = [
         ("A1","One-Way ANOVA + OLS","Lab 8+10",
-         f"slope = {fit_a1_s.params['cb']:.3f}, p = {fit_a1_s.pvalues['cb']:.4f}",
-         "✅ Significant" if fit_a1_s.pvalues['cb'] < 0.05 else "❌ Not sig"),
+         f"slope = {fit_a1_s.params['Creative_Before']:.3f}, p = {fit_a1_s.pvalues['Creative_Before']:.4f}",
+         "✅ Significant" if fit_a1_s.pvalues['Creative_Before'] < 0.05 else "❌ Not sig"),
         ("A2","Multiple OLS (dummies)","Lab 10",
-         f"R² = {fit_a2_s.rsquared:.3f}, trained coef = {trained_coef_s:.3f}",
+         f"R² = {fit_a2_s.rsquared:.3f}, AI_Course coef = {trained_coef_s:.3f}",
          "✅ Significant" if (not np.isnan(trained_pval_s) and trained_pval_s < 0.05) else "❌ Not sig"),
         ("A3","Lasso Regression","Lab 10",
          f"Kept {len(kept_s)} vars: {kept_s} · R² = {lasso_s.score(X4_s, y4_s):.3f}",
@@ -1238,10 +1214,10 @@ elif section == "📋 Summary":
         <div class='metric-val'>{fit_p1_s.rsquared:.2f}</div><div class='metric-lbl'>Best R²</div>
       </div>
       <div class='metric-card'>
-        <div class='metric-val'>{df["cn"].mean():.1f}</div><div class='metric-lbl'>Avg cn Now</div>
+        <div class='metric-val'>{df["Creative_Now"].mean():.1f}</div><div class='metric-lbl'>Avg Creative_Now</div>
       </div>
       <div class='metric-card'>
-        <div class='metric-val'>{df["change"].mean():+.2f}</div><div class='metric-lbl'>Avg Change</div>
+        <div class='metric-val'>{df["Change_Score"].mean():+.2f}</div><div class='metric-lbl'>Avg Change</div>
       </div>
       <div class='metric-card'>
         <div class='metric-val'>{cv_mean_s*100:.0f}%</div><div class='metric-lbl'>CV Accuracy</div>
