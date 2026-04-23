@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 from scipy.stats import binom
-from sklearn.linear_model import Lasso, LogisticRegression
+from sklearn.linear_model import Lasso, LassoCV, LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import cross_val_score, KFold
@@ -590,67 +590,172 @@ elif section == "📊 A2 — Dummy Regression":
 #  📊  A3 — LASSO DEPENDENCY
 # ══════════════════════════════════════════════
 elif section == "📊 A3 — Lasso Dependency":
+
+    # ── Build feature matrix: get_dummies for role, binary trained as-is ──
+    # Excluded: feel_less, harder, accept — they define dep by formula (circular)
+    cont_feats  = ['hours', 'writing', 'problem', 'creative', 'conf']
+    bin_feats   = ['trained']   # already 0/1
+
+    role_dummies = pd.get_dummies(df['role'], prefix='role', drop_first=True).astype(float)
+    role_cols    = role_dummies.columns.tolist()
+
+    df_a3_feats = pd.concat(
+        [df[cont_feats + bin_feats].reset_index(drop=True),
+         role_dummies.reset_index(drop=True)],
+        axis=1
+    )
+    all_feats = cont_feats + bin_feats + role_cols
+
+    scaler4 = StandardScaler()
+    X4      = scaler4.fit_transform(df_a3_feats)
+    y4      = df['dep'].values
+
+    # Readable short names for display
+    display_names = []
+    for f in all_feats:
+        if f.startswith('role_'):
+            display_names.append(
+                f.replace('role_Working professional', 'role:Prof')
+                 .replace('role_', 'role:')
+            )
+        else:
+            display_names.append(f)
+
+    # ── LassoCV: find optimal alpha from data ─────────────────────────────
+    lasso_cv = LassoCV(cv=5, max_iter=10000, random_state=42,
+                       alphas=np.logspace(-4, 0, 100))
+    lasso_cv.fit(X4, y4)
+    best_alpha = float(lasso_cv.alpha_)
+
+    # Find alpha that first zeroes ALL variables → use as hard ceiling
+    alpha_null = best_alpha
+    for a in np.linspace(best_alpha, 2.0, 500):
+        test = Lasso(alpha=a, max_iter=10000).fit(X4, y4)
+        if np.all(np.abs(test.coef_) <= 1e-4):
+            alpha_null = a
+            break
+    slider_max = round(float(alpha_null) * 0.90, 4)
+    slider_max = max(slider_max, round(best_alpha * 3, 4))
+    slider_max = min(slider_max, 1.0)
+
     st.markdown(f"""
     <div class="section-card">
-      <div class="section-title">A3 — What drives AI dependency scores?</div>
-      {badge("Lab 10 — Lasso Regression")}
+      <div class="section-title">A3 — Which usage behaviours drive AI dependency?</div>
+      {badge("Lab 10 — Lasso Regression")} {badge("Lab 10 — get_dummies encoding")}
       <div class="need-box">
-        <b>Research Need:</b> Use Lasso's automatic variable selection to identify which predictors
-        truly drive the composite dependency index — and which can be zeroed out.
+        <b>Research Need:</b> Use Lasso's automatic variable selection to identify which
+        <i>independent behavioural inputs</i> predict the composite dependency index.
+        Categorical variable <code>role</code> is one-hot encoded via
+        <code>pd.get_dummies(drop_first=True)</code> before scaling.
+        Attitudinal items <code>feel_less</code>, <code>harder</code>, <code>accept</code>
+        are excluded — they mathematically define <code>dep</code> by formula
+        and including them causes circular dependency.
       </div>
+      <b style='color:#9090a8;font-size:0.8rem'>VARIABLES USED</b>
       <div class="var-grid">
-        {pill('hours','cont')} {pill('writing','cont')} {pill('problem','cont')} {pill('creative','cont')}
-        {pill('feel_less','cont')} {pill('harder','cont')} {pill('accept','cont')} {pill('conf','cont')}
-        <span class="pill-label"> Predictors (standardised)</span>
-        &nbsp; {pill('dep','target')} <span class="pill-label"> Outcome</span>
+        {pill('hours','cont')} {pill('writing','cont')} {pill('problem','cont')}
+        {pill('creative','cont')} {pill('conf','cont')}
+        {pill('trained','cat')} {pill('role → get_dummies','cat')}
+        <span class="pill-label"> All standardised after encoding</span>
+        &nbsp; {pill('dep','target')} <span class="pill-label"> Outcome — dependency index</span>
       </div>
-      {formula_box("dep ~ StandardScaler([hours, writing, problem, creative, feel_less, harder, accept, conf])")}
     </div>
     """, unsafe_allow_html=True)
 
-    feats4 = ['hours','writing','problem','creative','feel_less','harder','accept','conf']
-    X4     = StandardScaler().fit_transform(df[feats4])
-    y4     = df['dep'].values
+    with st.expander("📋 Dummy Encoding — role categories"):
+        enc_preview = pd.concat(
+            [df[['role']].reset_index(drop=True), role_dummies.reset_index(drop=True)], axis=1
+        ).drop_duplicates().sort_values('role').reset_index(drop=True)
+        st.dataframe(enc_preview, use_container_width=True, hide_index=True)
+        st.caption("drop_first=True drops one category as the reference baseline (dummy trap prevention).")
 
-    alpha_val = st.slider("Lasso alpha (regularisation strength)", 0.001, 0.5, 0.05, 0.005,
-                          key='a4_alpha')
+    col_sl, col_cv = st.columns([3, 1])
+    with col_sl:
+        alpha_val = st.slider(
+            f"Lasso alpha  (CV best = {best_alpha:.4f}  |  slider max = {slider_max:.4f})",
+            min_value=round(best_alpha * 0.1, 4),
+            max_value=slider_max,
+            value=round(best_alpha, 4),
+            step=round((slider_max - best_alpha * 0.1) / 100, 4),
+            key='a4_alpha'
+        )
+    with col_cv:
+        st.markdown(f"""
+        <div class='metric-card' style='margin-top:0.4rem'>
+          <div class='metric-val' style='font-size:1rem'>{best_alpha:.4f}</div>
+          <div class='metric-lbl'>CV Best α</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     lasso = Lasso(alpha=alpha_val, max_iter=10000)
     lasso.fit(X4, y4)
 
     r2     = lasso.score(X4, y4)
-    kept   = [f for f, c in zip(feats4, lasso.coef_) if abs(c) > 1e-4]
-    zeroed = [f for f, c in zip(feats4, lasso.coef_) if abs(c) <= 1e-4]
+    kept   = [d for d, c in zip(display_names, lasso.coef_) if abs(c) > 1e-4]
+    zeroed = [d for d, c in zip(display_names, lasso.coef_) if abs(c) <= 1e-4]
 
-    c1, c2, c3 = st.columns(3)
-    c1.metric("R²",             f"{r2:.4f}")
-    c2.metric("Kept Variables", len(kept))
-    c3.metric("Zeroed Out",     len(zeroed))
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("R²",               f"{r2:.4f}")
+    c2.metric("Kept Variables",   len(kept))
+    c3.metric("Zeroed Out",       len(zeroed))
+    c4.metric("Total Predictors", len(all_feats))
 
     lasso_df = pd.DataFrame({
-        'Variable':    feats4,
+        'Variable':    display_names,
         'Coefficient': lasso.coef_.round(4),
         'Status':      ['✅ KEPT' if abs(c) > 1e-4 else '⬜ zeroed' for c in lasso.coef_]
     })
     st.dataframe(lasso_df, use_container_width=True, hide_index=True)
 
-    fig, ax = plt.subplots(figsize=(10, 4.5))
+    fig, axes = plt.subplots(1, 2, figsize=(13, max(4.5, len(all_feats) * 0.6)))
+
+    # Left: coefficient bar chart
     bcolors = [C2 if abs(c) > 1e-4 else '#2a2a3a' for c in lasso.coef_]
-    ax.barh(feats4, lasso.coef_, color=bcolors, height=0.55)
-    ax.axvline(0, color='#888', lw=0.8)
-    ax.set(xlabel='Lasso Coefficient (standardised)',
-           title=f'A3 — Lasso Variable Selection (α = {alpha_val})')
-    for bar_p, val in zip(ax.patches, lasso.coef_):
+    axes[0].barh(display_names, lasso.coef_, color=bcolors, height=0.6)
+    axes[0].axvline(0, color='#888', lw=0.8)
+    axes[0].set(xlabel='Lasso Coefficient (standardised)',
+                title=f'A3 — Variable Selection (α = {alpha_val:.4f})')
+    for bar_p, val in zip(axes[0].patches, lasso.coef_):
         if abs(val) > 1e-4:
-            offset = 0.005 if val >= 0 else -0.005
+            offset = 0.003 if val >= 0 else -0.003
             ha     = 'left'  if val >= 0 else 'right'
-            ax.text(val + offset, bar_p.get_y() + bar_p.get_height() / 2,
-                    f'{val:.3f}', va='center', ha=ha, fontsize=9)
-    ax.legend(handles=[
+            axes[0].text(val + offset, bar_p.get_y() + bar_p.get_height() / 2,
+                         f'{val:.3f}', va='center', ha=ha, fontsize=8)
+    axes[0].legend(handles=[
         mpatches.Patch(color=C2, label='Kept'),
         mpatches.Patch(color='#2a2a3a', label='Zeroed', edgecolor='#555')
     ])
+
+    # Right: regularisation path
+    alphas_path = np.linspace(best_alpha * 0.1, slider_max, 80)
+    n_kept_path = [int(np.sum(np.abs(Lasso(alpha=a, max_iter=10000).fit(X4, y4).coef_) > 1e-4))
+                   for a in alphas_path]
+    axes[1].plot(alphas_path, n_kept_path, color=CB, lw=2)
+    axes[1].axvline(alpha_val,  color=C3, lw=1.5, linestyle='--',
+                    label=f'Current α = {alpha_val:.4f}')
+    axes[1].axvline(best_alpha, color=C1, lw=1.5, linestyle=':',
+                    label=f'CV best α = {best_alpha:.4f}')
+    axes[1].set(xlabel='Alpha', ylabel='Variables kept',
+                title='A3 — Regularisation Path',
+                yticks=range(0, len(all_feats) + 1))
+    axes[1].legend(fontsize=8)
+
     plt.tight_layout()
     show_plot(fig)
+
+    st.markdown(f"""
+    <div class="need-box" style="margin-top:0.5rem">
+      <b>Encoding:</b> <code>role</code> had {df['role'].nunique()} unique values —
+      converted to {len(role_cols)} dummy column(s) via
+      <code>pd.get_dummies(drop_first=True)</code>, then all columns standardised
+      together via <code>StandardScaler</code> before Lasso fitting.
+      <br><br>
+      <b>Slider design:</b> The upper limit is capped just before the model hits
+      all-zero coefficients, so every position shows meaningful variable selection.
+      CV-best alpha ({best_alpha:.4f}) is chosen by 5-fold cross-validation.
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # ══════════════════════════════════════════════
 #  📊  A4 — LOGISTIC EFFORT  (+ K-Fold CV)
@@ -1037,12 +1142,20 @@ elif section == "📋 Summary":
     else:
         z_a3_s, p_a3_s = 0.0, 1.0
 
-    feats4_s = ['hours','writing','problem','creative','feel_less','harder','accept','conf']
-    X4_s     = StandardScaler().fit_transform(df[feats4_s])
-    y4_s     = df['dep'].values
-    lasso_s  = Lasso(alpha=0.05, max_iter=10000)
+    # Summary Lasso — mirrors A3: get_dummies for role, exclude circular vars
+    _cont_s   = ['hours', 'writing', 'problem', 'creative', 'conf']
+    _bin_s    = ['trained']
+    _rdummies = pd.get_dummies(df['role'], prefix='role', drop_first=True).astype(float)
+    _rcols    = _rdummies.columns.tolist()
+    _df_s     = pd.concat([df[_cont_s + _bin_s].reset_index(drop=True),
+                           _rdummies.reset_index(drop=True)], axis=1)
+    feats4_s  = _cont_s + _bin_s + _rcols
+    X4_s      = StandardScaler().fit_transform(_df_s)
+    y4_s      = df['dep'].values
+    lasso_s   = LassoCV(cv=5, max_iter=10000, random_state=42,
+                        alphas=np.logspace(-4, 0, 100))
     lasso_s.fit(X4_s, y4_s)
-    kept_s   = [f for f, c in zip(feats4_s, lasso_s.coef_) if abs(c) > 1e-4]
+    kept_s    = [f for f, c in zip(feats4_s, lasso_s.coef_) if abs(c) > 1e-4]
 
     feats5_s = ['hours','writing','problem','creative','trained']
     X5_s     = StandardScaler().fit_transform(df[feats5_s])
